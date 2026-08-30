@@ -2,14 +2,26 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Plus, Minus, Send, ChefHat, ClipboardList, Check, Flame, Settings2, Trash2, Clock,
   Receipt, Pencil, Ban, AlertTriangle, Lock, Wallet, Users, Banknote, CreditCard, Smartphone,
-  KeyRound, UserCircle2, PauseCircle, ArrowRightLeft, Download, Eye, EyeOff,
-  Gift, Volume2, MessageSquarePlus, PlayCircle, StopCircle,
+  KeyRound, UserCircle2, PauseCircle, ArrowRightLeft, Download,
+  Gift, Volume2, MessageSquarePlus, PlayCircle, StopCircle, Eye, EyeOff,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
-import { saveShared, subscribeShared } from "./firebase.js";
+import { subscribeShared, saveShared, subscribeCollection, subscribeCollectionSince, getCollectionAll, getCollectionRange, getRecord, saveRecord, saveRecords, saveCollectionArray } from "./firebase.js";
 
-const NUM_MESAS = 4;
+// El día a día (Mesero, Cocina, Caja, Turno, Reportes de hoy/7/30 días) solo
+// mantiene en vivo esta cantidad de días recientes — así la app nunca se
+// vuelve más lenta con los años, sin importar cuánto historial se acumule.
+// Historial y Exportar/Respaldar sí piden todo, pero solo cuando se usan.
+const VENTANA_DIAS = 35;
+const VENTANA_MS = VENTANA_DIAS * 24 * 60 * 60 * 1000;
+
+const DEFAULT_MESAS = [
+  { id: "1", nombre: "Mesa 1" },
+  { id: "2", nombre: "Mesa 2" },
+  { id: "3", nombre: "Mesa 3" },
+  { id: "4", nombre: "Mesa 4" },
+];
 
 const DEFAULT_MENU = [
   { id: "m1", name: "Limonada Natural", price: 7000, cat: "Limonadas y Jugos" },
@@ -81,8 +93,8 @@ const DEFAULT_MENU = [
 const STATE_META = {
   pendiente: { label: "En cocina", color: "#C1442D" },
   preparando: { label: "Preparando", color: "#B98A2E" },
-  listo: { label: "Listo", color: "#5B7553" },
-  entregado: { label: "Entregado", color: "#8A9B87" },
+  listo: { label: "Listo para servir", color: "#2F6690" },
+  servido: { label: "Servido", color: "#5B7553" },
   cancelado: { label: "Cancelado", color: "#9A9382" },
 };
 
@@ -93,6 +105,53 @@ const METODO_META = {
 };
 
 const PROPINA_OPCIONES = [0, 10, 15, 20];
+
+const ROL_LABELS = { admin: "Admin", cajero: "Cajero", mesero: "Mesero" };
+function rolLabel(rol) {
+  return ROL_LABELS[rol] || rol;
+}
+// Un usuario puede tener uno o varios roles a la vez (ej. Mesero + Cajero).
+// Esto sigue leyendo el formato viejo (un solo "rol") para no perder nada de
+// lo que ya está guardado — pero todo lo nuevo se guarda como "roles": [...].
+function rolesDe(usuario) {
+  if (!usuario) return [];
+  if (Array.isArray(usuario.roles) && usuario.roles.length > 0) return usuario.roles;
+  if (usuario.rol) return [usuario.rol];
+  return [];
+}
+function tieneRol(usuario, rol) {
+  return rolesDe(usuario).includes(rol);
+}
+function rolesLabel(usuario) {
+  const roles = rolesDe(usuario);
+  return roles.length > 0 ? roles.map(rolLabel).join(" + ") : "Sin rol";
+}
+
+/* ---------------- mesas (nombres personalizables) ---------------- */
+
+function mesaMatch(a, b) {
+  return String(a) === String(b);
+}
+function mesaNombre(mesas, mesaId) {
+  const m = (mesas || []).find((x) => mesaMatch(x.id, mesaId));
+  return m ? m.nombre : `Mesa ${mesaId}`;
+}
+function mesaOrderIndex(mesas, mesaId) {
+  const idx = (mesas || []).findIndex((x) => mesaMatch(x.id, mesaId));
+  return idx === -1 ? 9999 : idx;
+}
+
+// Estado visual de una mesa para la cuadrícula y el plano: distingue entre
+// "hay algo pendiente en cocina" (rojo), "ya está listo pero nadie lo ha
+// llevado a la mesa" (azul), "cuenta abierta, todo servido" (verde) y libre.
+function estadoVisualMesa(cuenta, ordersDeLaCuenta) {
+  if (!cuenta) return { tag: "Libre", bg: "#EDE7D8", color: "#8A8272" };
+  const enCocina = ordersDeLaCuenta.some((o) => o.estado === "pendiente" || o.estado === "preparando");
+  if (enCocina) return { tag: "En cocina", bg: "#C1442D", color: "#F7F4EC" };
+  const listoSinServir = ordersDeLaCuenta.some((o) => o.estado === "listo");
+  if (listoSinServir) return { tag: "Listo para servir", bg: "#2F6690", color: "#F7F4EC" };
+  return { tag: "Cuenta abierta", bg: "#5B7553", color: "#F7F4EC" };
+}
 
 /* ---------------- helpers ---------------- */
 
@@ -270,8 +329,29 @@ function playBeep() {
   }
 }
 
-function descargarRespaldo({ menu, orders, cuentas, config, turnos }) {
-  const data = { version: 1, exportadoTs: Date.now(), menu, orders, cuentas, config, turnos };
+// Notificación del sistema (como cualquier notificación de WhatsApp) — solo
+// funciona mientras el navegador siga abierto (aunque sea en segundo plano
+// o en otra pestaña). Con la pantalla del celular totalmente bloqueada NO
+// llega — eso necesitaría un servidor de notificaciones push aparte.
+function mostrarNotificacionSistema(titulo, cuerpo) {
+  try {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible") return; // ya lo está viendo, no hace falta duplicar
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.showNotification(titulo, { body: cuerpo, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png" });
+      }).catch(() => {});
+    }
+  } catch (e) {
+    // silencioso si el navegador no soporta notificaciones
+  }
+}
+
+
+/* La carga/guardado de datos en vivo ahora vive en ./firebase.js (Firebase Realtime Database) */
+
+function descargarRespaldo({ menu, orders, cuentas, config, turnos, mesas }) {
+  const data = { version: 2, exportadoTs: Date.now(), menu, orders, cuentas, config, turnos, mesas };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -284,7 +364,7 @@ function descargarRespaldo({ menu, orders, cuentas, config, turnos }) {
   URL.revokeObjectURL(url);
 }
 
-function exportarExcel(cuentas, orders, config) {
+function exportarExcel(cuentas, orders, config, mesas) {
   const pagadas = cuentas.filter((c) => c.estado === "pagada").sort((a, b) => a.pagadaTs - b.pagadaTs);
   const filasPagos = [];
   pagadas.forEach((c) => {
@@ -292,7 +372,7 @@ function exportarExcel(cuentas, orders, config) {
       filasPagos.push({
         Fecha: new Date(c.pagadaTs).toLocaleDateString("es-CO"),
         Hora: timeLabel(p.ts),
-        Mesa: c.mesa,
+        Mesa: mesaNombre(mesas, c.mesa),
         Mesero: c.mesero || "",
         Etiqueta: p.etiqueta || "Cuenta completa",
         Método: METODO_META[p.metodoPago]?.label || p.metodoPago,
@@ -325,7 +405,7 @@ function exportarExcel(cuentas, orders, config) {
 
 /* ---------------- App ---------------- */
 
-const DEFAULT_CONFIG = { businessName: "Dulce & Café", waiters: [], usuarios: [], auditLog: [] };
+const DEFAULT_CONFIG = { businessName: "Dulce & Café", usuarios: [], auditLog: [] };
 
 export default function App() {
   const [role, setRole] = useState("mesero");
@@ -334,11 +414,18 @@ export default function App() {
   const [cuentas, setCuentas] = useState([]);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [turnos, setTurnos] = useState([]);
+  const [mesas, setMesas] = useState(DEFAULT_MESAS);
   const [loaded, setLoaded] = useState(false);
   const [, forceTick] = useState(0);
-  const [meseroActual, setMeseroActual] = useState(null);
-  const [cajaUsuario, setCajaUsuario] = useState(null); // { nombre, rol }
-  const [lastSync, setLastSync] = useState(Date.now());
+  const [usuarioActual, setUsuarioActual] = useState(null); // { nombre, rol } — aplica a toda la app, no solo a un rol
+  // Si algo falla al guardar en Firebase (por ejemplo, se cortó el internet a
+  // mitad de camino), esto deja de ser un error silencioso en la consola —
+  // se muestra un aviso visible para que quien esté usando la app se entere
+  // en el momento, en vez de descubrirlo días después con datos faltantes.
+  const [errorGuardado, setErrorGuardado] = useState(null);
+  const avisarErrorGuardado = useCallback((msg) => setErrorGuardado(msg), []);
+  // (el login de caja usa el mismo usuarioActual de arriba — ya no hay un estado separado)
+  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
 
   // Los navegadores bloquean audio automático hasta que hay una interacción real
   // del usuario. Con el primer toque en cualquier parte de la app "despertamos"
@@ -363,35 +450,123 @@ export default function App() {
     return () => { window.removeEventListener("touchstart", unlock); window.removeEventListener("click", unlock); };
   }, []);
 
-  // Sincronización en tiempo real con Firebase: cada vez que cualquier
-  // dispositivo conectado cambia algo, todos los demás lo reciben al instante
-  // (no hace falta esperar un sondeo cada 3 segundos como antes).
+  // Estado de conexión real del navegador (sirve como indicador de "en vivo").
   useEffect(() => {
-    const loadedKeys = new Set();
-    const markLoaded = (key) => {
-      loadedKeys.add(key);
-      if (loadedKeys.size === 5) setLoaded(true);
-    };
-
-    const unsubs = [
-      subscribeShared("menu", DEFAULT_MENU, (v) => { setMenu(v); setLastSync(Date.now()); markLoaded("menu"); }),
-      subscribeShared("orders", [], (v) => { setOrders(v); setLastSync(Date.now()); markLoaded("orders"); }),
-      subscribeShared("cuentas", [], (v) => { setCuentas(v); setLastSync(Date.now()); markLoaded("cuentas"); }),
-      subscribeShared("config", DEFAULT_CONFIG, (v) => { setConfig({ ...DEFAULT_CONFIG, ...v }); setLastSync(Date.now()); markLoaded("config"); }),
-      subscribeShared("turnos", [], (v) => { setTurnos(v); setLastSync(Date.now()); markLoaded("turnos"); }),
-    ];
-    const clock = setInterval(() => forceTick((t) => t + 1), 1000);
-    return () => { unsubs.forEach((u) => u()); clearInterval(clock); };
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
   }, []);
 
-  const persistOrders = useCallback(async (next) => { setOrders(next); await saveShared("orders", next); }, []);
-  const persistMenu = useCallback(async (next) => { setMenu(next); await saveShared("menu", next); }, []);
-  const persistCuentas = useCallback(async (next) => { setCuentas(next); await saveShared("cuentas", next); }, []);
-  const persistConfig = useCallback(async (next) => { setConfig(next); await saveShared("config", next); }, []);
-  const persistTurnos = useCallback(async (next) => { setTurnos(next); await saveShared("turnos", next); }, []);
+  // Suscripción en vivo a Firebase: cualquier cambio hecho desde otro dispositivo
+  // (otro mesero, cocina o caja) se refleja aquí automáticamente, sin recargar.
+  // Pedidos y cuentas solo se suscriben a los últimos VENTANA_DIAS (ver arriba)
+  // — eso es lo único que hace falta para operar el día a día, y por eso
+  // nunca pesa más aunque pasen los años. La ventana se refresca cada hora
+  // para que siga corriendo con el tiempo en sesiones muy largas. Turnos,
+  // menú, mesas y config son siempre chicos y se cargan completos.
+  const [ventanaEpoch, setVentanaEpoch] = useState(0);
+  useEffect(() => {
+    const refrescar = setInterval(() => setVentanaEpoch((e) => e + 1), 60 * 60 * 1000);
+    return () => clearInterval(refrescar);
+  }, []);
+
+  useEffect(() => {
+    const pending = new Set(["menu", "orders", "cuentas", "config", "turnos", "mesas"]);
+    const markLoaded = (key) => { pending.delete(key); if (pending.size === 0) setLoaded(true); };
+    const desde = Date.now() - VENTANA_MS;
+
+    const unsubs = [
+      subscribeShared("menu", DEFAULT_MENU, (v) => { setMenu(v); markLoaded("menu"); }),
+      subscribeCollectionSince("orders", "ts", desde, (v) => { setOrders(v); markLoaded("orders"); }),
+      subscribeCollectionSince("cuentas", "ts", desde, (v) => { setCuentas(v); markLoaded("cuentas"); }),
+      subscribeShared("config", DEFAULT_CONFIG, (v) => { setConfig({ ...DEFAULT_CONFIG, ...v }); markLoaded("config"); }),
+      subscribeCollection("turnos", (v) => { setTurnos(v); markLoaded("turnos"); }),
+      subscribeShared("mesas", DEFAULT_MESAS, (v) => { setMesas(v && v.length > 0 ? v : DEFAULT_MESAS); markLoaded("mesas"); }),
+    ];
+    const clock = setInterval(() => forceTick((t) => t + 1), 1000);
+    return () => { unsubs.forEach((unsub) => unsub && unsub()); clearInterval(clock); };
+  }, [ventanaEpoch]);
+
+  // Historial completo bajo demanda: null hasta que alguien entra a Historial
+  // o pide exportar/respaldar. Se pide UNA VEZ (no en vivo) y se combina con
+  // lo que ya está cargado en vivo (que siempre tiene lo más reciente).
+  const [historialCompleto, setHistorialCompleto] = useState(null);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const cargarHistorialCompleto = useCallback(async () => {
+    if (historialCompleto || cargandoHistorial) return;
+    setCargandoHistorial(true);
+    const [todosOrders, todasCuentas] = await Promise.all([getCollectionAll("orders"), getCollectionAll("cuentas")]);
+    setHistorialCompleto({ orders: todosOrders, cuentas: todasCuentas });
+    setCargandoHistorial(false);
+  }, [historialCompleto, cargandoHistorial]);
+  // Combina el historial completo (si ya se pidió) con la ventana en vivo,
+  // dejando que la ventana en vivo "gane" por ser más reciente.
+  const mergeConVentana = (base, ventana) => {
+    const byId = Object.fromEntries(base.map((r) => [r.id, r]));
+    ventana.forEach((r) => { byId[r.id] = r; });
+    return Object.values(byId);
+  };
+  const ordersParaHistorial = historialCompleto ? mergeConVentana(historialCompleto.orders, orders) : orders;
+  const cuentasParaHistorial = historialCompleto ? mergeConVentana(historialCompleto.cuentas, cuentas) : cuentas;
+
+  // Respaldo automático diario: cada vez que un administrador abre la app,
+  // revisa si ya existe una copia del día de AYER (el de hoy todavía no ha
+  // terminado). Si falta, la crea sola — solo trae los pedidos y cuentas de
+  // ESE día puntual (no todo el historial), así el respaldo automático nunca
+  // se vuelve más pesado sin importar cuántos años lleve funcionando esto.
+  useEffect(() => {
+    if (!usuarioActual || !tieneRol(usuarioActual, "admin") || !loaded) return;
+    let cancelado = false;
+    (async () => {
+      const ayer = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const dk = dayKey(ayer.getTime());
+      const yaExiste = await getRecord(`respaldos/${dk}/hecho`);
+      if (cancelado || yaExiste) return;
+      const inicioDia = new Date(ayer); inicioDia.setHours(0, 0, 0, 0);
+      const finDia = new Date(ayer); finDia.setHours(23, 59, 59, 999);
+      const [cuentasDia, ordersDia] = await Promise.all([
+        getCollectionRange("cuentas", "ts", inicioDia.getTime(), finDia.getTime()),
+        getCollectionRange("orders", "ts", inicioDia.getTime(), finDia.getTime()),
+      ]);
+      if (cancelado) return;
+      await saveShared(`respaldos/${dk}`, {
+        hecho: true, generadoTs: Date.now(), dia: dk,
+        cuentas: cuentasDia, orders: ordersDia, menu, mesas, config,
+      });
+    })();
+    return () => { cancelado = true; };
+  }, [usuarioActual, loaded]);
+
+  const MSG_SIN_CONEXION = "No se pudo guardar — revisa tu conexión a internet e inténtalo de nuevo.";
+  const persistMenu = useCallback(async (next) => { setMenu(next); const ok = await saveShared("menu", next); if (!ok) avisarErrorGuardado(MSG_SIN_CONEXION); }, [avisarErrorGuardado]);
+  const persistConfig = useCallback(async (next) => { setConfig(next); const ok = await saveShared("config", next); if (!ok) avisarErrorGuardado(MSG_SIN_CONEXION); }, [avisarErrorGuardado]);
+  const persistMesas = useCallback(async (next) => { setMesas(next); const ok = await saveShared("mesas", next); if (!ok) avisarErrorGuardado(MSG_SIN_CONEXION); }, [avisarErrorGuardado]);
+
+  // Guardan UN registro a la vez (pedido / cuenta / turno), no la lista completa.
+  const saveOrder = useCallback(async (order) => {
+    setOrders((prev) => { const i = prev.findIndex((o) => o.id === order.id); if (i === -1) return [...prev, order]; const next = [...prev]; next[i] = order; return next; });
+    const ok = await saveRecord("orders", order.id, order);
+    if (!ok) avisarErrorGuardado(MSG_SIN_CONEXION);
+  }, [avisarErrorGuardado]);
+  const saveOrdersMap = useCallback(async (recordsById) => {
+    setOrders((prev) => { const byId = Object.fromEntries(prev.map((o) => [o.id, o])); Object.entries(recordsById).forEach(([id, val]) => { byId[id] = val; }); return Object.values(byId); });
+    const ok = await saveRecords("orders", recordsById);
+    if (!ok) avisarErrorGuardado(MSG_SIN_CONEXION);
+  }, [avisarErrorGuardado]);
+  const saveCuenta = useCallback(async (cuenta) => {
+    setCuentas((prev) => { const i = prev.findIndex((c) => c.id === cuenta.id); if (i === -1) return [...prev, cuenta]; const next = [...prev]; next[i] = cuenta; return next; });
+    const ok = await saveRecord("cuentas", cuenta.id, cuenta);
+    if (!ok) avisarErrorGuardado(MSG_SIN_CONEXION);
+  }, [avisarErrorGuardado]);
+  const saveTurno = useCallback(async (turno) => {
+    setTurnos((prev) => { const i = prev.findIndex((t) => t.id === turno.id); if (i === -1) return [...prev, turno]; const next = [...prev]; next[i] = turno; return next; });
+    const ok = await saveRecord("turnos", turno.id, turno);
+    if (!ok) avisarErrorGuardado(MSG_SIN_CONEXION);
+  }, [avisarErrorGuardado]);
 
   const turnoAbierto = turnos.find((t) => t.estado === "abierto") || null;
-  const staleMs = Date.now() - lastSync;
 
   if (!loaded) {
     return (
@@ -401,33 +576,57 @@ export default function App() {
     );
   }
 
+  // Al iniciar sesión, cada quien cae directo en su sección — un mesero no
+  // tiene por qué terminar viendo la pantalla de Caja, ni al revés. Un admin
+  // (o alguien con los dos roles) se queda donde ya estaba, porque tiene
+  // acceso a ambas.
+  const onLogin = (usuario) => {
+    setUsuarioActual(usuario);
+    const esMesero = tieneRol(usuario, "mesero");
+    const esCajero = tieneRol(usuario, "cajero") || tieneRol(usuario, "admin");
+    if (esMesero && !esCajero) setRole("mesero");
+    else if (esCajero && !esMesero) setRole("caja");
+  };
+
   return (
     <div style={styles.app}>
       <style>{fontImports}</style>
-      <TopBar
-        role={role} setRole={setRole} config={config} meseroActual={meseroActual}
-        onCambiarMesero={() => setMeseroActual(null)} staleMs={staleMs}
-        cajaUsuario={cajaUsuario} onCambiarCajaUsuario={() => setCajaUsuario(null)}
-      />
+      <TopBar role={role} setRole={setRole} config={config} usuarioActual={usuarioActual} onCambiarUsuario={() => setUsuarioActual(null)} online={online} />
+      {errorGuardado && (
+        <div style={styles.errorGuardadoBanner}>
+          <AlertTriangle size={14} />
+          <span style={{ flex: 1 }}>{errorGuardado}</span>
+          <button style={styles.errorGuardadoCerrar} onClick={() => setErrorGuardado(null)}>✕</button>
+        </div>
+      )}
       {role === "mesero" && (
-        !meseroActual ? (
-          <MeseroLogin config={config} persistConfig={persistConfig} onEntrar={setMeseroActual} />
+        !usuarioActual ? (
+          <UsuarioLogin config={config} persistConfig={persistConfig} onEntrar={onLogin} />
+        ) : !tieneRol(usuarioActual, "mesero") && !tieneRol(usuarioActual, "admin") ? (
+          <AccesoDenegado mensaje="Tu usuario no tiene el rol de Mesero — esto es Mesero." accion="Ir a Caja" onAccion={() => setRole("caja")} onCambiarUsuario={() => setUsuarioActual(null)} />
         ) : (
           <MeseroView
-            menu={menu} orders={orders} cuentas={cuentas} meseroActual={meseroActual} config={config}
-            persistOrders={persistOrders} persistMenu={persistMenu} persistCuentas={persistCuentas} persistConfig={persistConfig}
+            menu={menu} orders={orders} cuentas={cuentas} usuarioActual={usuarioActual} config={config}
+            mesas={mesas} persistMesas={persistMesas}
+            saveOrder={saveOrder} saveOrdersMap={saveOrdersMap} saveCuenta={saveCuenta}
+            persistMenu={persistMenu} persistConfig={persistConfig}
           />
         )
       )}
-      {role === "cocina" && <CocinaView orders={orders} persistOrders={persistOrders} />}
+      {role === "cocina" && <CocinaView orders={orders} saveOrder={saveOrder} mesas={mesas} />}
       {role === "caja" && (
-        !cajaUsuario ? (
-          <CajaLogin config={config} persistConfig={persistConfig} onLogin={setCajaUsuario} />
+        !usuarioActual ? (
+          <UsuarioLogin config={config} persistConfig={persistConfig} onEntrar={onLogin} />
+        ) : !tieneRol(usuarioActual, "cajero") && !tieneRol(usuarioActual, "admin") ? (
+          <AccesoDenegado mensaje="Tu usuario no tiene el rol de Cajero — esto es Caja." accion="Ir a Mesero" onAccion={() => setRole("mesero")} onCambiarUsuario={() => setUsuarioActual(null)} />
         ) : (
           <CajaView
-            menu={menu} orders={orders} cuentas={cuentas} persistCuentas={persistCuentas}
-            turnos={turnos} turnoAbierto={turnoAbierto} persistTurnos={persistTurnos}
-            config={config} persistConfig={persistConfig} usuarioActual={cajaUsuario}
+            menu={menu} orders={orders} cuentas={cuentas} saveCuenta={saveCuenta} saveOrdersMap={saveOrdersMap}
+            turnos={turnos} turnoAbierto={turnoAbierto} saveTurno={saveTurno}
+            config={config} persistConfig={persistConfig} usuarioActual={usuarioActual}
+            mesas={mesas} persistMesas={persistMesas}
+            ordersParaHistorial={ordersParaHistorial} cuentasParaHistorial={cuentasParaHistorial}
+            historialCompleto={historialCompleto} cargandoHistorial={cargandoHistorial} cargarHistorialCompleto={cargarHistorialCompleto}
           />
         )
       )}
@@ -435,23 +634,30 @@ export default function App() {
   );
 }
 
-function TopBar({ role, setRole, config, meseroActual, onCambiarMesero, staleMs, cajaUsuario, onCambiarCajaUsuario }) {
-  const desync = staleMs > 15000;
+function AccesoDenegado({ mensaje, accion, onAccion, onCambiarUsuario }) {
   return (
-    <div style={styles.topBar}>
+    <div style={styles.screen}>
+      <div style={styles.loginWrap}>
+        <div style={styles.pageEyebrow}>SIN ACCESO</div>
+        <div style={styles.cajaEmptyText}>{mensaje}</div>
+        <button style={styles.addItemBtn} onClick={onAccion}><ArrowRightLeft size={15} /> {accion}</button>
+        <button style={styles.inlineAddLink} onClick={onCambiarUsuario}>No soy yo — cambiar de usuario</button>
+      </div>
+    </div>
+  );
+}
+
+function TopBar({ role, setRole, config, usuarioActual, onCambiarUsuario, online }) {
+  return (
+    <div className="no-imprimir" style={styles.topBar}>
       <div style={styles.brand}>
         <span style={styles.brandMark}>◆</span>
         <span style={styles.brandText}>{(config.businessName || "LA COMANDA").toUpperCase()}</span>
-        <span style={{ ...styles.syncDot, background: desync ? "#C1442D" : "#5B7553" }} title={desync ? "Sin sincronizar" : "Sincronizado"} />
+        <span style={{ ...styles.syncDot, background: online ? "#5B7553" : "#C1442D" }} title={online ? "En línea" : "Sin conexión"} />
       </div>
-      {role === "mesero" && meseroActual && (
-        <button style={styles.meseroChip} onClick={onCambiarMesero}>
-          <UserCircle2 size={13} /> {meseroActual}
-        </button>
-      )}
-      {role === "caja" && cajaUsuario && (
-        <button style={styles.meseroChip} onClick={onCambiarCajaUsuario}>
-          <UserCircle2 size={13} /> {cajaUsuario.nombre} · {cajaUsuario.rol === "admin" ? "Admin" : "Cajero"}
+      {usuarioActual && (
+        <button style={styles.meseroChip} onClick={onCambiarUsuario}>
+          <UserCircle2 size={13} /> {usuarioActual.nombre} · {rolesLabel(usuarioActual)}
         </button>
       )}
       <div style={styles.roleSwitch}>
@@ -469,99 +675,25 @@ function TopBar({ role, setRole, config, meseroActual, onCambiarMesero, staleMs,
   );
 }
 
-/* ---------------- Mesero: login e identificación ---------------- */
+/* ---------------- Login único de la app (aplica a Mesero y Caja) ---------------- */
 
-function MeseroLogin({ config, persistConfig, onEntrar }) {
-  const waiters = config.waiters || [];
-  const [seleccionado, setSeleccionado] = useState(null);
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-  const [mostrarNuevo, setMostrarNuevo] = useState(false);
-  const [nombreNuevo, setNombreNuevo] = useState("");
-  const [pinNuevo, setPinNuevo] = useState("");
-  const [pinNuevo2, setPinNuevo2] = useState("");
-
-  const crearMesero = async () => {
-    if (!nombreNuevo.trim()) { setError("Escribe tu nombre."); return; }
-    if (waiters.some((w) => w.nombre.toLowerCase() === nombreNuevo.trim().toLowerCase())) { setError("Ya existe un mesero con ese nombre."); return; }
-    if (pinNuevo.length < 4) { setError("El PIN debe tener al menos 4 dígitos."); return; }
-    if (pinNuevo !== pinNuevo2) { setError("Los PIN no coinciden."); return; }
-    const nuevo = { id: uid(), nombre: nombreNuevo.trim(), pin: pinNuevo };
-    await persistConfig({ ...config, waiters: [...waiters, nuevo] });
-    onEntrar(nuevo.nombre);
-  };
-
-  if (mostrarNuevo || waiters.length === 0) {
-    return (
-      <div style={styles.screen}>
-        <div style={styles.loginWrap}>
-          <div style={styles.pageEyebrow}>{waiters.length === 0 ? "PRIMER MESERO" : "MESERO NUEVO"}</div>
-          <div style={styles.pageTitle}>Crea tu acceso</div>
-          <div style={styles.cajaEmptyText}>Elige un PIN corto — lo usarás cada vez que entres, para que nadie más tome pedidos como si fuera tú.</div>
-          <input style={styles.editInput} placeholder="Tu nombre" value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} />
-          <input style={{ ...styles.editInput, marginTop: 8 }} type="password" inputMode="numeric" placeholder="Nuevo PIN" value={pinNuevo} onChange={(e) => setPinNuevo(e.target.value.replace(/\D/g, ""))} />
-          <input style={{ ...styles.editInput, marginTop: 8 }} type="password" inputMode="numeric" placeholder="Repite el PIN" value={pinNuevo2} onChange={(e) => setPinNuevo2(e.target.value.replace(/\D/g, ""))} />
-          {error && <div style={styles.pinError}>{error}</div>}
-          <button style={{ ...styles.addItemBtn, marginTop: 10 }} onClick={crearMesero}><KeyRound size={15} /> Crear y entrar</button>
-          {waiters.length > 0 && (
-            <button style={styles.backBtn} onClick={() => { setMostrarNuevo(false); setError(""); }}>← Ya tengo cuenta</button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (!seleccionado) {
-    return (
-      <div style={styles.screen}>
-        <div style={styles.loginWrap}>
-          <div style={styles.pageEyebrow}>IDENTIFÍCATE</div>
-          <div style={styles.pageTitle}>¿Quién eres?</div>
-          <div style={styles.loginList}>
-            {waiters.map((w) => (
-              <button key={w.id} style={styles.loginBtn} onClick={() => { setSeleccionado(w); setError(""); }}>
-                <UserCircle2 size={18} /> {w.nombre}
-              </button>
-            ))}
-          </div>
-          <button style={styles.inlineAddLink} onClick={() => setMostrarNuevo(true)}><Plus size={12} /> Soy nuevo, crear mi acceso</button>
-        </div>
-      </div>
-    );
-  }
-
-  const intentar = () => {
-    if (pin === seleccionado.pin) onEntrar(seleccionado.nombre);
-    else { setError("PIN incorrecto."); setPin(""); }
-  };
-
-  return (
-    <div style={styles.screen}>
-      <div style={styles.loginWrap}>
-        <button style={styles.backBtn} onClick={() => { setSeleccionado(null); setPin(""); setError(""); }}>← Elegir otro nombre</button>
-        <div style={{ ...styles.pageEyebrow, marginTop: 10 }}>HOLA, {seleccionado.nombre.toUpperCase()}</div>
-        <div style={styles.pageTitle}>Tu PIN</div>
-        <input
-          style={styles.editInput} type="password" inputMode="numeric" placeholder="PIN"
-          value={pin} onChange={(e) => { setPin(e.target.value.replace(/\D/g, "")); setError(""); }}
-          onKeyDown={(e) => e.key === "Enter" && intentar()}
-        />
-        {error && <div style={styles.pinError}>{error}</div>}
-        <button style={{ ...styles.addItemBtn, marginTop: 10 }} onClick={intentar}><KeyRound size={15} /> Entrar</button>
-      </div>
-    </div>
-  );
-}
-
-/* ---------------- Caja: usuarios individuales con rol ---------------- */
-
-function CajaLogin({ config, persistConfig, onLogin }) {
+function UsuarioLogin({ config, persistConfig, onEntrar }) {
   const usuarios = config.usuarios || [];
   const hayUsuarios = usuarios.length > 0;
 
   const [seleccionado, setSeleccionado] = useState(null);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
+  const [intentosFallidos, setIntentosFallidos] = useState(0);
+  const [bloqueadoHasta, setBloqueadoHasta] = useState(0);
+  const [, forceTickLogin] = useState(0);
+
+  // Cuenta regresiva visible mientras está bloqueado.
+  useEffect(() => {
+    if (!bloqueadoHasta) return;
+    const t = setInterval(() => forceTickLogin((x) => x + 1), 500);
+    return () => clearInterval(t);
+  }, [bloqueadoHasta]);
 
   // solo se usan cuando NO hay usuarios todavía (creación del administrador)
   const [nombreAdmin, setNombreAdmin] = useState("");
@@ -573,18 +705,18 @@ function CajaLogin({ config, persistConfig, onLogin }) {
       if (!nombreAdmin.trim()) { setError("Escribe tu nombre."); return; }
       if (pinAdmin.length < 4) { setError("El PIN debe tener al menos 4 dígitos."); return; }
       if (pinAdmin !== pinAdmin2) { setError("Los PIN no coinciden."); return; }
-      const admin = { id: uid(), nombre: nombreAdmin.trim(), pin: pinAdmin, rol: "admin" };
+      const admin = { id: uid(), nombre: nombreAdmin.trim(), pin: pinAdmin, roles: ["admin"] };
       const registro = { ts: Date.now(), accion: "Cuenta administradora creada", actor: nombreAdmin.trim() };
       await persistConfig({ ...config, usuarios: [admin], auditLog: [registro] });
-      onLogin({ nombre: admin.nombre, rol: "admin" });
+      onEntrar({ nombre: admin.nombre, roles: ["admin"] });
     };
 
     return (
       <div style={styles.screen}>
         <div style={styles.loginWrap}>
-          <div style={styles.pageEyebrow}>CONFIGURAR CAJA</div>
+          <div style={styles.pageEyebrow}>CONFIGURAR LA APP</div>
           <div style={styles.pageTitle}>Crea el administrador</div>
-          <div style={styles.cajaEmptyText}>Esta primera cuenta queda como Administrador — puede gestionar otros usuarios, aplicar descuentos y todo lo demás. Los siguientes usuarios los crea el administrador desde adentro.</div>
+          <div style={styles.cajaEmptyText}>Esta primera cuenta queda como Administrador — tiene acceso a Mesero y a Caja con un solo login, puede crear todos los demás usuarios (cajeros y meseros), ver sus PIN, aplicar descuentos y todo lo demás.</div>
           <input style={styles.editInput} placeholder="Tu nombre" value={nombreAdmin} onChange={(e) => setNombreAdmin(e.target.value)} />
           <input style={{ ...styles.editInput, marginTop: 8 }} type="password" inputMode="numeric" placeholder="Nuevo PIN" value={pinAdmin} onChange={(e) => setPinAdmin(e.target.value.replace(/\D/g, ""))} />
           <input style={{ ...styles.editInput, marginTop: 8 }} type="password" inputMode="numeric" placeholder="Repite el PIN" value={pinAdmin2} onChange={(e) => setPinAdmin2(e.target.value.replace(/\D/g, ""))} />
@@ -600,13 +732,13 @@ function CajaLogin({ config, persistConfig, onLogin }) {
     return (
       <div style={styles.screen}>
         <div style={styles.loginWrap}>
-          <div style={styles.pageEyebrow}>ACCESO RESTRINGIDO</div>
+          <div style={styles.pageEyebrow}>IDENTIFÍCATE</div>
           <div style={styles.pageTitle}>¿Quién eres?</div>
           <div style={styles.loginList}>
             {usuarios.map((u) => (
               <button key={u.id} style={styles.loginBtn} onClick={() => { setSeleccionado(u); setError(""); }}>
                 <UserCircle2 size={18} /> {u.nombre}
-                <span style={styles.rolBadge}>{u.rol === "admin" ? "Admin" : "Cajero"}</span>
+                <span style={styles.rolBadge}>{rolesLabel(u)}</span>
               </button>
             ))}
           </div>
@@ -615,24 +747,43 @@ function CajaLogin({ config, persistConfig, onLogin }) {
     );
   }
 
+  const segundosRestantes = Math.max(0, Math.ceil((bloqueadoHasta - Date.now()) / 1000));
+  const bloqueado = segundosRestantes > 0;
+
   const intentar = () => {
-    if (pin === seleccionado.pin) onLogin({ nombre: seleccionado.nombre, rol: seleccionado.rol });
-    else { setError("PIN incorrecto."); setPin(""); }
+    if (bloqueado) return;
+    if (pin === seleccionado.pin) {
+      setIntentosFallidos(0);
+      onEntrar({ nombre: seleccionado.nombre, roles: rolesDe(seleccionado) });
+    } else {
+      const siguiente = intentosFallidos + 1;
+      setIntentosFallidos(siguiente);
+      setPin("");
+      if (siguiente >= 5) {
+        setBloqueadoHasta(Date.now() + 30000);
+        setError("Demasiados intentos — espera 30 segundos.");
+        setIntentosFallidos(0);
+      } else {
+        setError(`PIN incorrecto (intento ${siguiente} de 5).`);
+      }
+    }
   };
 
   return (
     <div style={styles.screen}>
       <div style={styles.loginWrap}>
-        <button style={styles.backBtn} onClick={() => { setSeleccionado(null); setPin(""); setError(""); }}>← Elegir otro usuario</button>
+        <button style={styles.backBtn} onClick={() => { setSeleccionado(null); setPin(""); setError(""); setIntentosFallidos(0); setBloqueadoHasta(0); }}>← Elegir otro usuario</button>
         <div style={{ ...styles.pageEyebrow, marginTop: 10 }}>HOLA, {seleccionado.nombre.toUpperCase()}</div>
         <div style={styles.pageTitle}>Tu PIN</div>
         <input
-          style={styles.editInput} type="password" inputMode="numeric" placeholder="PIN"
+          style={styles.editInput} type="password" inputMode="numeric" placeholder="PIN" disabled={bloqueado}
           value={pin} onChange={(e) => { setPin(e.target.value.replace(/\D/g, "")); setError(""); }}
           onKeyDown={(e) => e.key === "Enter" && intentar()}
         />
         {error && <div style={styles.pinError}>{error}</div>}
-        <button style={{ ...styles.addItemBtn, marginTop: 10 }} onClick={intentar}><KeyRound size={15} /> Entrar</button>
+        <button style={{ ...styles.addItemBtn, marginTop: 10, opacity: bloqueado ? 0.5 : 1 }} disabled={bloqueado} onClick={intentar}>
+          <KeyRound size={15} /> {bloqueado ? `Espera ${segundosRestantes}s` : "Entrar"}
+        </button>
       </div>
     </div>
   );
@@ -640,11 +791,42 @@ function CajaLogin({ config, persistConfig, onLogin }) {
 
 /* ---------------- MESERO ---------------- */
 
-function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders, persistMenu, persistCuentas, persistConfig }) {
+function MeseroView({ menu, orders, cuentas, usuarioActual, config, mesas, persistMesas, saveOrder, saveOrdersMap, saveCuenta, persistMenu, persistConfig }) {
+  // Editar el menú, precios y mesas queda reservado al administrador — un
+  // mesero normal no debería poder cambiar precios ni borrar productos.
+  const meseroActual = usuarioActual.nombre;
+  const esAdminMesero = tieneRol(usuarioActual, "admin");
+
+  // Aviso sonoro para el mesero: cuando cocina marca "listo" un pedido de
+  // alguna de SUS mesas todavía abiertas, suena y aparece un mensaje — así
+  // no tiene que estar entrando a cada mesa a chequear si ya puede servir.
+  const idsListosVistosRef = useRef(null);
+  const [avisoListo, setAvisoListo] = useState(null);
+  useEffect(() => {
+    const misCuentaIds = new Set(cuentas.filter((c) => c.mesero === meseroActual && c.estado === "abierta").map((c) => c.id));
+    const listosAhora = orders.filter((o) => o.estado === "listo" && misCuentaIds.has(o.cuentaId));
+    const idsActuales = new Set(listosAhora.map((o) => o.id));
+    if (idsListosVistosRef.current === null) {
+      idsListosVistosRef.current = idsActuales; // primera carga: no suena por lo que ya estaba listo antes
+      return;
+    }
+    const nuevos = listosAhora.filter((o) => !idsListosVistosRef.current.has(o.id));
+    idsListosVistosRef.current = idsActuales;
+    if (nuevos.length > 0) {
+      playBeep();
+      const nombreMesa = mesaNombre(mesas, nuevos[0].mesa);
+      const mensaje = nuevos.length === 1 ? `${nombreMesa}: pedido listo para servir` : `${nuevos.length} pedidos listos para servir`;
+      setAvisoListo(mensaje);
+      mostrarNotificacionSistema("Comandas", mensaje);
+      setTimeout(() => setAvisoListo(null), 4500);
+    }
+  }, [orders, cuentas, meseroActual, mesas]);
+
   const [selectedMesa, setSelectedMesa] = useState(null);
   const [draft, setDraft] = useState({}); // { itemId: { qty, nota } }
   const [note, setNote] = useState("");
   const [showMenuEditor, setShowMenuEditor] = useState(false);
+  const [showMesasEditor, setShowMesasEditor] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState(null);
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [justSent, setJustSent] = useState(false);
@@ -652,33 +834,9 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
   const [search, setSearch] = useState("");
   const [notingItemId, setNotingItemId] = useState(null);
   const [mesaAction, setMesaAction] = useState(null); // 'trasladar' | 'unir'
-  const [avisosListos, setAvisosListos] = useState([]); // [{id, mesa, ts}]
-  const listoIdsPrevRef = useRef(null); // null = todavía no inicializado
+  const [vistaMesas, setVistaMesas] = useState("grid"); // 'grid' | 'plano'
 
-  // Aviso al mesero cuando cocina marca un pedido como "Listo"
-  useEffect(() => {
-    const listoAhora = orders.filter((o) => o.estado === "listo");
-    const idsAhora = new Set(listoAhora.map((o) => o.id));
-
-    if (listoIdsPrevRef.current === null) {
-      // primera carga: solo establecemos la base, sin sonar (evita avisos falsos de pedidos viejos)
-      listoIdsPrevRef.current = idsAhora;
-      return;
-    }
-
-    const nuevos = listoAhora.filter((o) => !listoIdsPrevRef.current.has(o.id));
-    if (nuevos.length > 0) {
-      playBeep();
-      const items = nuevos.map((o) => ({ id: o.id, mesa: o.mesa, ts: Date.now() }));
-      setAvisosListos((prev) => [...items, ...prev]);
-      items.forEach((it) => {
-        setTimeout(() => setAvisosListos((prev) => prev.filter((a) => a.id !== it.id)), 15000);
-      });
-    }
-    listoIdsPrevRef.current = idsAhora;
-  }, [orders]);
-
-  const cuentaAbiertaDe = (mesaNum) => cuentas.find((c) => c.mesa === mesaNum && c.estado === "abierta");
+  const cuentaAbiertaDe = (mesaId) => cuentas.find((c) => mesaMatch(c.mesa, mesaId) && c.estado === "abierta");
 
   const totalItems = Object.values(draft).reduce((a, b) => a + b.qty, 0);
 
@@ -717,66 +875,89 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
   };
 
   const cancelarPedido = async (orderId) => {
-    const next = orders.map((o) => (o.id === orderId ? { ...o, estado: "cancelado" } : o));
-    await persistOrders(next);
+    const order = orders.find((o) => o.id === orderId);
+    if (order) await saveOrder({ ...order, estado: "cancelado" });
     setConfirmCancelId(null);
     if (editingOrderId === orderId) resetDraft();
   };
 
-  const marcarEntregado = async (orderId) => {
-    const next = orders.map((o) => (o.id === orderId ? { ...o, estado: "entregado" } : o));
-    await persistOrders(next);
+  const marcarServido = async (orderId) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (order) await saveOrder({ ...order, estado: "servido" });
   };
 
+  const enviandoRef = useRef(false);
+  const [enviando, setEnviando] = useState(false);
   const enviarPedido = async (mesaNum) => {
     if (totalItems === 0) return;
-    const items = Object.entries(draft).map(([id, { qty, nota }]) => {
-      const m = menu.find((x) => x.id === id);
-      return { id, name: m.name, price: m.price, qty, nota: (nota || "").trim() || undefined };
-    });
+    if (enviandoRef.current) return; // ya se está enviando — ignora el segundo toque para no duplicar el pedido
+    enviandoRef.current = true;
+    setEnviando(true);
+    try {
+      // Si alguien borró un producto del menú desde otro dispositivo justo mientras
+      // este mesero lo tenía en el carrito, lo ignoramos en vez de romper el envío.
+      const items = Object.entries(draft)
+        .map(([id, { qty, nota }]) => {
+          const m = menu.find((x) => x.id === id);
+          if (!m) return null;
+          // Se guarda el costo de ESTE momento junto al pedido — así el margen
+          // de una venta vieja no cambia después si algún día actualizas el
+          // costo del producto en el menú.
+          return { id, name: m.name, price: m.price, cost: m.cost || 0, qty, nota: (nota || "").trim() };
+        })
+        .filter(Boolean);
+      if (items.length === 0) { resetDraft(); return; }
 
-    if (editingOrderId) {
-      const next = orders.map((o) => (o.id === editingOrderId ? { ...o, items, nota: note.trim(), editado: true } : o));
-      await persistOrders(next);
-    } else {
-      let cuenta = cuentaAbiertaDe(mesaNum);
-      if (!cuenta) {
-        cuenta = { id: uid(), mesa: mesaNum, ts: Date.now(), estado: "abierta", mesero: meseroActual };
-        await persistCuentas([...cuentas, cuenta]);
+      if (editingOrderId) {
+        const original = orders.find((o) => o.id === editingOrderId);
+        if (original) await saveOrder({ ...original, items, nota: note.trim(), editado: true });
+      } else {
+        let cuenta = cuentaAbiertaDe(mesaNum);
+        if (!cuenta) {
+          cuenta = { id: uid(), mesa: mesaNum, ts: Date.now(), estado: "abierta", mesero: meseroActual };
+          await saveCuenta(cuenta);
+        }
+        const order = { id: uid(), mesa: mesaNum, cuentaId: cuenta.id, items, nota: note.trim(), estado: "pendiente", ts: Date.now() };
+        await saveOrder(order);
+        setJustSent(true);
+        setTimeout(() => setJustSent(false), 2200);
       }
-      const order = { id: uid(), mesa: mesaNum, cuentaId: cuenta.id, items, nota: note.trim(), estado: "pendiente", ts: Date.now() };
-      await persistOrders([...orders, order]);
-      setJustSent(true);
-      setTimeout(() => setJustSent(false), 2200);
+      resetDraft();
+    } finally {
+      enviandoRef.current = false;
+      setEnviando(false);
     }
-    resetDraft();
   };
 
-  const mesasLibres = (excluir) => Array.from({ length: NUM_MESAS }, (_, i) => i + 1).filter((n) => n !== excluir && !cuentaAbiertaDe(n));
-  const mesasOcupadas = (excluir) => Array.from({ length: NUM_MESAS }, (_, i) => i + 1).filter((n) => n !== excluir && cuentaAbiertaDe(n));
+  const mesasLibres = (excluir) => mesas.filter((m) => !mesaMatch(m.id, excluir) && !cuentaAbiertaDe(m.id));
+  const mesasOcupadas = (excluir) => mesas.filter((m) => !mesaMatch(m.id, excluir) && cuentaAbiertaDe(m.id));
 
   const trasladarA = async (cuenta, nuevaMesa) => {
-    const nextOrders = orders.map((o) => (o.cuentaId === cuenta.id ? { ...o, mesa: nuevaMesa } : o));
-    const nextCuentas = cuentas.map((c) => (c.id === cuenta.id ? { ...c, mesa: nuevaMesa } : c));
-    await persistOrders(nextOrders);
-    await persistCuentas(nextCuentas);
+    const afectadas = cuentaOrders(orders, cuenta.id);
+    const patch = {};
+    afectadas.forEach((o) => { patch[o.id] = { ...o, mesa: nuevaMesa }; });
+    if (Object.keys(patch).length > 0) await saveOrdersMap(patch);
+    await saveCuenta({ ...cuenta, mesa: nuevaMesa });
     setMesaAction(null);
     setSelectedMesa(nuevaMesa);
   };
 
   const unirCon = async (cuentaOrigen, cuentaDestino) => {
-    const nextOrders = orders.map((o) =>
-      o.cuentaId === cuentaOrigen.id ? { ...o, cuentaId: cuentaDestino.id, mesa: cuentaDestino.mesa } : o
-    );
-    const nextCuentas = cuentas.map((c) => (c.id === cuentaOrigen.id ? { ...c, estado: "fusionada", fusionadaEnId: cuentaDestino.id } : c));
-    await persistOrders(nextOrders);
-    await persistCuentas(nextCuentas);
+    const afectadas = cuentaOrders(orders, cuentaOrigen.id);
+    const patch = {};
+    afectadas.forEach((o) => { patch[o.id] = { ...o, cuentaId: cuentaDestino.id, mesa: cuentaDestino.mesa }; });
+    if (Object.keys(patch).length > 0) await saveOrdersMap(patch);
+    await saveCuenta({ ...cuentaOrigen, estado: "fusionada", fusionadaEnId: cuentaDestino.id });
     setMesaAction(null);
     setSelectedMesa(cuentaDestino.mesa);
   };
 
-  if (showMenuEditor) {
-    return <MenuEditor menu={menu} persistMenu={persistMenu} config={config} persistConfig={persistConfig} onClose={() => setShowMenuEditor(false)} />;
+  if (showMenuEditor && esAdminMesero) {
+    return <MenuEditor menu={menu} persistMenu={persistMenu} config={config} persistConfig={persistConfig} actor={meseroActual} onClose={() => setShowMenuEditor(false)} />;
+  }
+
+  if (showMesasEditor && esAdminMesero) {
+    return <MesasEditor mesas={mesas} persistMesas={persistMesas} cuentas={cuentas} orders={orders} config={config} persistConfig={persistConfig} actor={meseroActual} onClose={() => setShowMesasEditor(false)} />;
   }
 
   if (selectedMesa) {
@@ -786,11 +967,12 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
 
     return (
       <div style={styles.screen}>
+        {avisoListo && <div style={styles.avisoListoBanner}><Volume2 size={14} /> {avisoListo}</div>}
         <div style={styles.subHeader}>
           <button style={styles.backBtn} onClick={exitMesa}>← Mesas</button>
           <div style={styles.mesaTitleWrap}>
             <span style={styles.mesaEyebrow}>MESA</span>
-            <span style={styles.mesaTitle}>{selectedMesa}</span>
+            <span style={styles.mesaTitle}>{mesaNombre(mesas, selectedMesa)}</span>
             {cuenta && <span style={styles.cuentaOpenSub}>Cuenta abierta · {timeLabel(cuenta.ts)}</span>}
           </div>
           {cuenta ? (
@@ -817,8 +999,8 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
             <div style={styles.closeConfirmText}>Elige la mesa libre destino:</div>
             <div style={styles.mesaPickerRow}>
               {mesasLibres(selectedMesa).length === 0 && <span style={styles.cajaEmptyText}>No hay mesas libres.</span>}
-              {mesasLibres(selectedMesa).map((n) => (
-                <button key={n} style={styles.mesaPickerBtn} onClick={() => trasladarA(cuenta, n)}>Mesa {n}</button>
+              {mesasLibres(selectedMesa).map((m) => (
+                <button key={m.id} style={styles.mesaPickerBtn} onClick={() => trasladarA(cuenta, m.id)}>{m.nombre}</button>
               ))}
             </div>
             <button style={styles.cancelEditBtn} onClick={() => setMesaAction("menu")}>Volver</button>
@@ -829,8 +1011,8 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
             <div style={styles.closeConfirmText}>Se unirá esta cuenta a la mesa que elijas (quedará todo en una sola cuenta):</div>
             <div style={styles.mesaPickerRow}>
               {mesasOcupadas(selectedMesa).length === 0 && <span style={styles.cajaEmptyText}>No hay otras mesas ocupadas.</span>}
-              {mesasOcupadas(selectedMesa).map((n) => (
-                <button key={n} style={styles.mesaPickerBtn} onClick={() => unirCon(cuenta, cuentaAbiertaDe(n))}>Mesa {n}</button>
+              {mesasOcupadas(selectedMesa).map((m) => (
+                <button key={m.id} style={styles.mesaPickerBtn} onClick={() => unirCon(cuenta, cuentaAbiertaDe(m.id))}>{m.nombre}</button>
               ))}
             </div>
             <button style={styles.cancelEditBtn} onClick={() => setMesaAction("menu")}>Volver</button>
@@ -866,9 +1048,9 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
                     </div>
                   )}
                   {o.estado === "listo" && (
-                    <button style={styles.entregadoBtn} onClick={() => marcarEntregado(o.id)}>
-                      <Check size={12} /> Ya lo llevé
-                    </button>
+                    <div style={styles.miniTicketActions}>
+                      <button style={styles.marcarServidoBtn} onClick={() => marcarServido(o.id)}><Check size={12} /> Marcar servido</button>
+                    </div>
                   )}
                 </div>
               );
@@ -949,9 +1131,9 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
           <input placeholder="Nota general para cocina (opcional)" value={note} onChange={(e) => setNote(e.target.value)} style={styles.noteInput} />
           <div style={{ display: "flex", gap: 8 }}>
             {editingOrderId && <button style={styles.cancelEditBtn} onClick={resetDraft}>Descartar</button>}
-            <button style={{ ...styles.sendBtn, flex: 1, opacity: totalItems === 0 ? 0.4 : 1 }} disabled={totalItems === 0} onClick={() => enviarPedido(selectedMesa)}>
+            <button style={{ ...styles.sendBtn, flex: 1, opacity: totalItems === 0 || enviando ? 0.4 : 1 }} disabled={totalItems === 0 || enviando} onClick={() => enviarPedido(selectedMesa)}>
               {editingOrderId ? <Check size={16} /> : <Send size={16} />}
-              {editingOrderId ? `Guardar cambios (${totalItems})` : `Enviar pedido ${totalItems > 0 ? `(${totalItems})` : ""}`}
+              {enviando ? "Enviando…" : editingOrderId ? `Guardar cambios (${totalItems})` : `Enviar pedido ${totalItems > 0 ? `(${totalItems})` : ""}`}
             </button>
           </div>
         </div>
@@ -961,63 +1143,102 @@ function MeseroView({ menu, orders, cuentas, meseroActual, config, persistOrders
 
   return (
     <div style={styles.screen}>
+      {avisoListo && <div style={styles.avisoListoBanner}><Volume2 size={14} /> {avisoListo}</div>}
+      <AvisoActivarNotificaciones />
       <div style={styles.mesaGridHeader}>
         <div>
           <div style={styles.pageEyebrow}>SALÓN</div>
           <div style={styles.pageTitle}>Mesas</div>
         </div>
-        <button style={styles.editMenuBtn} onClick={() => setShowMenuEditor(true)}><Settings2 size={15} /> Editar menú</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {esAdminMesero ? (
+            <>
+              <button style={styles.editMenuBtn} onClick={() => setShowMesasEditor(true)}><Settings2 size={15} /> Mesas</button>
+              <button style={styles.editMenuBtn} onClick={() => setShowMenuEditor(true)}><Settings2 size={15} /> Menú</button>
+            </>
+          ) : (
+            <span style={styles.lockedNote}><Lock size={11} /> Menú y mesas los administra el admin</span>
+          )}
+        </div>
       </div>
-
-      {avisosListos.length > 0 && (
-        <div style={styles.avisosListosWrap}>
-          {avisosListos.map((a) => (
-            <button key={a.id} style={styles.avisoListoBanner} onClick={() => { enterMesa(a.mesa); setAvisosListos((prev) => prev.filter((x) => x.id !== a.id)); }}>
-              <Volume2 size={14} /> Mesa {a.mesa}: pedido listo para servir
-              <span style={styles.avisoListoClose} onClick={(e) => { e.stopPropagation(); setAvisosListos((prev) => prev.filter((x) => x.id !== a.id)); }}>✕</span>
-            </button>
-          ))}
+      <div style={styles.vistaMesasSwitch}>
+        <button style={{ ...styles.vistaMesasBtn, ...(vistaMesas === "grid" ? styles.vistaMesasBtnActive : {}) }} onClick={() => setVistaMesas("grid")}>Cuadrícula</button>
+        <button style={{ ...styles.vistaMesasBtn, ...(vistaMesas === "plano" ? styles.vistaMesasBtnActive : {}) }} onClick={() => setVistaMesas("plano")}>Plano</button>
+      </div>
+      {vistaMesas === "plano" ? (
+        <div style={{ padding: "0 16px 16px" }}>
+          <PlanoSalon mesas={mesas} cuentas={cuentas} orders={orders} editable={false} onTapMesa={enterMesa} />
+        </div>
+      ) : (
+        <div style={styles.mesaGrid}>
+          {mesas.length === 0 && (
+            <div style={styles.cajaEmptyText}>No hay mesas creadas todavía. Toca "Mesas" para agregar la primera.</div>
+          )}
+          {mesas.map((m) => {
+            const cuenta = cuentaAbiertaDe(m.id);
+            const visual = estadoVisualMesa(cuenta, cuenta ? cuentaOrders(orders, cuenta.id) : []);
+            return (
+              <button key={m.id} style={styles.mesaCard} onClick={() => enterMesa(m.id)}>
+                <span style={styles.mesaCardNum}>{m.nombre}</span>
+                <span style={{ ...styles.mesaCardTag, background: visual.bg, color: visual.color }}>{visual.tag}</span>
+                {cuenta && <span style={styles.mesaCardSince}>desde {timeLabel(cuenta.ts)}</span>}
+              </button>
+            );
+          })}
         </div>
       )}
-
-      <div style={styles.mesaGrid}>
-        {Array.from({ length: NUM_MESAS }, (_, i) => i + 1).map((n) => {
-          const cuenta = cuentaAbiertaDe(n);
-          const ordsMesa = cuenta ? cuentaOrders(orders, cuenta.id) : [];
-          const hasActivePedido = ordsMesa.some((o) => o.estado === "pendiente" || o.estado === "preparando");
-          const hasListoParaServir = !hasActivePedido && ordsMesa.some((o) => o.estado === "listo");
-          const tagBg = hasActivePedido ? "#C1442D" : hasListoParaServir ? "#2F6690" : cuenta ? "#5B7553" : "#EDE7D8";
-          const tagColor = cuenta ? "#F7F4EC" : "#8A8272";
-          const tagText = hasActivePedido ? "En cocina" : hasListoParaServir ? "🔔 Listo para servir" : cuenta ? "Cuenta abierta" : "Libre";
-          return (
-            <button key={n} style={styles.mesaCard} onClick={() => enterMesa(n)}>
-              <span style={styles.mesaCardNum}>{n}</span>
-              <span style={{ ...styles.mesaCardTag, background: tagBg, color: tagColor }}>{tagText}</span>
-              {cuenta && <span style={styles.mesaCardSince}>desde {timeLabel(cuenta.ts)}</span>}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
 
-function MenuEditor({ menu, persistMenu, config, persistConfig, onClose }) {
+function MenuEditor({ menu, persistMenu, config, persistConfig, actor, onClose }) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [cost, setCost] = useState("");
   const [cat, setCat] = useState("");
   const [businessName, setBusinessName] = useState(config.businessName || "");
   const [savedFlash, setSavedFlash] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editPriceValue, setEditPriceValue] = useState("");
+  const [editCostValue, setEditCostValue] = useState("");
+
+  const registrar = (accion) => {
+    const auditLog = config.auditLog || [];
+    persistConfig({ ...config, auditLog: [{ ts: Date.now(), accion, actor: actor || "desconocido" }, ...auditLog].slice(0, 50) });
+  };
 
   const addItem = () => {
     if (!name.trim() || !price) return;
-    const item = { id: uid(), name: name.trim(), price: parseFloat(price) || 0, cat: cat.trim() || "Otros" };
+    const item = { id: uid(), name: name.trim(), price: parseFloat(price) || 0, cost: parseFloat(cost) || 0, cat: cat.trim() || "Otros" };
     persistMenu([...menu, item]);
-    setName(""); setPrice(""); setCat("");
+    registrar(`Agregó "${item.name}" al menú (${money(item.price)})`);
+    setName(""); setPrice(""); setCost(""); setCat("");
   };
-  const removeItem = (id) => { persistMenu(menu.filter((m) => m.id !== id)); setConfirmDeleteId(null); };
-  const toggleAgotado = (id) => persistMenu(menu.map((m) => (m.id === id ? { ...m, agotado: !m.agotado } : m)));
+  const removeItem = (id) => {
+    const item = menu.find((m) => m.id === id);
+    persistMenu(menu.filter((m) => m.id !== id));
+    if (item) registrar(`Eliminó "${item.name}" del menú`);
+    setConfirmDeleteId(null);
+  };
+  const toggleAgotado = (id) => {
+    const item = menu.find((m) => m.id === id);
+    persistMenu(menu.map((m) => (m.id === id ? { ...m, agotado: !m.agotado } : m)));
+    if (item) registrar(`Marcó "${item.name}" como ${item.agotado ? "disponible" : "agotado"}`);
+  };
+  const empezarEdicionItem = (item) => {
+    setEditingItemId(item.id);
+    setEditPriceValue(item.price ? String(item.price) : "");
+    setEditCostValue(item.cost ? String(item.cost) : "");
+  };
+  const guardarEdicionItem = (item) => {
+    const nuevoPrecio = parseFloat(editPriceValue) || 0;
+    const nuevoCosto = parseFloat(editCostValue) || 0;
+    persistMenu(menu.map((m) => (m.id === item.id ? { ...m, price: nuevoPrecio, cost: nuevoCosto } : m)));
+    if (nuevoPrecio !== item.price) registrar(`Cambió el precio de "${item.name}" de ${money(item.price)} a ${money(nuevoPrecio)}`);
+    if (nuevoCosto !== (item.cost || 0)) registrar(`Actualizó el costo de "${item.name}" a ${money(nuevoCosto)}`);
+    setEditingItemId(null); setEditPriceValue(""); setEditCostValue("");
+  };
 
   const guardarNombre = async () => {
     if (!businessName.trim()) return;
@@ -1045,36 +1266,237 @@ function MenuEditor({ menu, persistMenu, config, persistConfig, onClose }) {
         <div style={styles.addItemCard}>
           <input style={styles.editInput} placeholder="Nombre del plato" value={name} onChange={(e) => setName(e.target.value)} />
           <div style={{ display: "flex", gap: 8 }}>
-            <input style={{ ...styles.editInput, flex: 1 }} placeholder="Precio" type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
-            <input style={{ ...styles.editInput, flex: 1 }} placeholder="Categoría" value={cat} onChange={(e) => setCat(e.target.value)} />
+            <CampoMonto style={{ ...styles.editInput, flex: 1 }} placeholder="Precio de venta" value={price} onChange={setPrice} />
+            <CampoMonto style={{ ...styles.editInput, flex: 1 }} placeholder="Costo (opcional)" value={cost} onChange={setCost} />
           </div>
+          <input style={{ ...styles.editInput, flex: 1 }} placeholder="Categoría" value={cat} onChange={(e) => setCat(e.target.value)} />
           <button style={styles.addItemBtn} onClick={addItem}><Plus size={15} /> Agregar al menú</button>
         </div>
 
         {[...new Set(menu.map((m) => m.cat))].map((c) => (
           <div key={c} style={{ marginBottom: 18 }}>
             <div style={styles.catLabel}>{c}</div>
-            {menu.filter((m) => m.cat === c).map((item) => (
-              <div key={item.id} style={styles.editRow}>
-                <button
-                  style={{ ...styles.agotadoToggle, ...(item.agotado ? styles.agotadoToggleActive : {}) }}
-                  onClick={() => toggleAgotado(item.id)}
-                  title={item.agotado ? "Marcar disponible" : "Marcar agotado"}
-                >
-                  <PauseCircle size={14} />
-                </button>
-                <span style={{ ...styles.menuItemName, ...(item.agotado ? { textDecoration: "line-through", color: "#9A9382" } : {}) }}>{item.name}</span>
-                <span style={styles.menuItemPrice}>{money(item.price)}</span>
-                {confirmDeleteId === item.id ? (
+            {menu.filter((m) => m.cat === c).map((item) => {
+              const margen = item.price - (item.cost || 0);
+              const margenPct = item.price > 0 ? Math.round((margen / item.price) * 100) : 0;
+              return (
+                <div key={item.id} style={styles.menuEditItemBlock}>
+                  <div style={{ ...styles.editRow, borderBottom: "none" }}>
+                    <button
+                      style={{ ...styles.agotadoToggle, ...(item.agotado ? styles.agotadoToggleActive : {}) }}
+                      onClick={() => toggleAgotado(item.id)}
+                      title={item.agotado ? "Marcar disponible" : "Marcar agotado"}
+                    >
+                      <PauseCircle size={14} />
+                    </button>
+                    <span style={{ ...styles.menuItemName, ...(item.agotado ? { textDecoration: "line-through", color: "#9A9382" } : {}) }}>{item.name}</span>
+                    {editingItemId !== item.id && (
+                      <button style={styles.precioEditableBtn} onClick={() => empezarEdicionItem(item)}>{money(item.price)} <Pencil size={10} /></button>
+                    )}
+                    {confirmDeleteId === item.id ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button style={styles.confirmYes} onClick={() => removeItem(item.id)}>Sí</button>
+                        <button style={styles.confirmNo} onClick={() => setConfirmDeleteId(null)}>No</button>
+                      </div>
+                    ) : (
+                      <button style={styles.deleteBtn} onClick={() => setConfirmDeleteId(item.id)}><Trash2 size={14} /></button>
+                    )}
+                  </div>
+                  {editingItemId === item.id ? (
+                    <div style={styles.costoEditRow}>
+                      <CampoMonto style={{ ...styles.editInput, flex: 1 }} placeholder="Precio de venta" value={editPriceValue} onChange={setEditPriceValue} autoFocus />
+                      <CampoMonto style={{ ...styles.editInput, flex: 1 }} placeholder="Costo" value={editCostValue} onChange={setEditCostValue} />
+                      <button style={styles.confirmYes} onClick={() => guardarEdicionItem(item)}>Guardar</button>
+                      <button style={styles.confirmNo} onClick={() => setEditingItemId(null)}>Cancelar</button>
+                    </div>
+                  ) : (
+                    <button style={styles.costoPillBtn} onClick={() => empezarEdicionItem(item)}>
+                      {item.cost ? (
+                        <>Costo {money(item.cost)} · Margen {money(margen)} ({margenPct}%)</>
+                      ) : (
+                        <>+ Agregar costo de producción (para ver el margen)</>
+                      )}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Plano visual del salón: cada mesa se dibuja en su posición real (x%, y%)
+ * en vez de una cuadrícula pareja. En modo "editable" se puede arrastrar
+ * cada mesa a su lugar (con el dedo o el mouse); si no, solo se puede tocar
+ * para entrar a ella — igual que las tarjetas de la cuadrícula. */
+function PlanoSalon({ mesas, cuentas, orders, editable, onTapMesa, onMoverMesa }) {
+  const containerRef = useRef(null);
+  const [arrastrando, setArrastrando] = useState(null);
+  const [posLive, setPosLive] = useState(null);
+
+  const posDefault = (idx) => {
+    const cols = 4;
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    return { x: 15 + col * 24, y: 20 + row * 26 };
+  };
+  const posDe = (m, idx) => (typeof m.x === "number" && typeof m.y === "number") ? { x: m.x, y: m.y } : posDefault(idx);
+
+  const onPointerDown = (e, m) => {
+    if (!editable) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setArrastrando(m.id);
+  };
+  const onPointerMove = (e) => {
+    if (!arrastrando || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    let x = ((e.clientX - rect.left) / rect.width) * 100;
+    let y = ((e.clientY - rect.top) / rect.height) * 100;
+    x = Math.max(4, Math.min(96, x));
+    y = Math.max(6, Math.min(94, y));
+    setPosLive({ x, y });
+  };
+  const onPointerUp = () => {
+    if (arrastrando && posLive) onMoverMesa(arrastrando, posLive.x, posLive.y);
+    setArrastrando(null);
+    setPosLive(null);
+  };
+
+  return (
+    <div ref={containerRef} style={styles.planoContainer} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}>
+      {mesas.length === 0 && <div style={styles.planoVacio}>Agrega mesas para verlas aquí.</div>}
+      {mesas.map((m, idx) => {
+        const cuenta = cuentas.find((c) => mesaMatch(c.mesa, m.id) && c.estado === "abierta");
+        const visual = estadoVisualMesa(cuenta, cuenta ? orders.filter((o) => o.cuentaId === cuenta.id) : []);
+        const bg = cuenta ? visual.bg : "#FFFDF8";
+        const color = cuenta ? visual.color : "#242019";
+        const pos = arrastrando === m.id && posLive ? posLive : posDe(m, idx);
+        return (
+          <button
+            key={m.id}
+            onPointerDown={(e) => onPointerDown(e, m)}
+            onClick={() => { if (!editable) onTapMesa(m.id); }}
+            style={{
+              ...styles.planoMesaTile,
+              left: `${pos.x}%`, top: `${pos.y}%`,
+              background: bg, color,
+              borderColor: cuenta ? bg : "#E4DFCE",
+              cursor: editable ? "grab" : "pointer",
+              touchAction: editable ? "none" : "auto",
+              zIndex: arrastrando === m.id ? 2 : 1,
+            }}
+          >
+            {m.nombre}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MesasEditor({ mesas, persistMesas, cuentas, orders, config, persistConfig, actor, onClose }) {
+  const [nombre, setNombre] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [error, setError] = useState("");
+
+  const tieneCuentaAbierta = (mesaId) => cuentas.some((c) => mesaMatch(c.mesa, mesaId) && c.estado === "abierta");
+
+  const registrar = (accion) => {
+    if (!config || !persistConfig) return;
+    const auditLog = config.auditLog || [];
+    persistConfig({ ...config, auditLog: [{ ts: Date.now(), accion, actor: actor || "desconocido" }, ...auditLog].slice(0, 50) });
+  };
+
+  const agregarMesa = () => {
+    if (!nombre.trim()) return;
+    const nueva = { id: uid(), nombre: nombre.trim() };
+    persistMesas([...mesas, nueva]);
+    registrar(`Agregó la mesa/espacio "${nueva.nombre}"`);
+    setNombre("");
+  };
+
+  const empezarEdicion = (m) => { setEditId(m.id); setEditNombre(m.nombre); setError(""); };
+  const guardarEdicion = (m) => {
+    if (!editNombre.trim()) return;
+    persistMesas(mesas.map((x) => (x.id === m.id ? { ...x, nombre: editNombre.trim() } : x)));
+    registrar(`Renombró "${m.nombre}" a "${editNombre.trim()}"`);
+    setEditId(null); setEditNombre("");
+  };
+
+  const eliminarMesa = (m) => {
+    if (tieneCuentaAbierta(m.id)) { setError("Esa mesa tiene una cuenta abierta — ciérrala o cóbrala antes de eliminarla."); setConfirmDeleteId(null); return; }
+    persistMesas(mesas.filter((x) => x.id !== m.id));
+    registrar(`Eliminó la mesa/espacio "${m.nombre}"`);
+    setConfirmDeleteId(null);
+  };
+
+  const moverEnPlano = (id, x, y) => {
+    persistMesas(mesas.map((m) => (m.id === id ? { ...m, x, y } : m)));
+  };
+
+  const mover = (idx, dir) => {
+    const next = [...mesas];
+    const j = idx + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[idx], next[j]] = [next[j], next[idx]];
+    persistMesas(next);
+  };
+
+  return (
+    <div style={styles.screen}>
+      <div style={styles.subHeader}>
+        <button style={styles.backBtn} onClick={onClose}>← Mesas</button>
+        <div style={styles.mesaTitleWrap}><span style={styles.mesaEyebrow}>AJUSTES</span><span style={styles.mesaTitle}>Mesas y espacios</span></div>
+        <div style={{ width: 70 }} />
+      </div>
+      <div style={styles.menuScroll}>
+        <div style={styles.addItemCard}>
+          <div style={styles.catLabel}>AGREGAR MESA O ESPACIO</div>
+          <div style={styles.closeConfirmText}>Puedes ponerle cualquier nombre: "Mesa 5", "Barra", "Mesa gris", "Terraza"…</div>
+          <input style={styles.editInput} placeholder="Nombre del espacio" value={nombre} onChange={(e) => setNombre(e.target.value)} onKeyDown={(e) => e.key === "Enter" && agregarMesa()} />
+          <button style={styles.addItemBtn} onClick={agregarMesa}><Plus size={15} /> Agregar</button>
+        </div>
+
+        {error && <div style={styles.pinError}>{error}</div>}
+
+        <div style={styles.catLabel}>UBICACIÓN EN EL PLANO</div>
+        <div style={styles.closeConfirmText}>Arrastra cada mesa a su lugar real del salón — así se ve en Mesero cuando cambias a vista "Plano".</div>
+        <PlanoSalon mesas={mesas} cuentas={cuentas} orders={orders} editable onMoverMesa={moverEnPlano} />
+
+        <div style={{ ...styles.catLabel, marginTop: 18 }}>TUS MESAS Y ESPACIOS</div>
+        {mesas.length === 0 && <div style={styles.cajaEmptyText}>Todavía no has agregado ninguna.</div>}
+        {mesas.map((m, idx) => (
+          <div key={m.id} style={styles.editRow}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <button style={styles.mesaReorderBtn} onClick={() => mover(idx, -1)} disabled={idx === 0}>▲</button>
+              <button style={styles.mesaReorderBtn} onClick={() => mover(idx, 1)} disabled={idx === mesas.length - 1}>▼</button>
+            </div>
+            {editId === m.id ? (
+              <>
+                <input autoFocus style={{ ...styles.editInput, flex: 1 }} value={editNombre} onChange={(e) => setEditNombre(e.target.value)} onKeyDown={(e) => e.key === "Enter" && guardarEdicion(m)} />
+                <button style={styles.confirmYes} onClick={() => guardarEdicion(m)}>Guardar</button>
+                <button style={styles.confirmNo} onClick={() => setEditId(null)}>Cancelar</button>
+              </>
+            ) : (
+              <>
+                <span style={{ ...styles.menuItemName, flex: 1 }}>{m.nombre}</span>
+                {tieneCuentaAbierta(m.id) && <span style={styles.enCursoTag}>cuenta abierta</span>}
+                <button style={styles.deleteBtn} onClick={() => empezarEdicion(m)}><Pencil size={14} /></button>
+                {confirmDeleteId === m.id ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <button style={styles.confirmYes} onClick={() => removeItem(item.id)}>Sí</button>
+                    <button style={styles.confirmYes} onClick={() => eliminarMesa(m)}>Sí</button>
                     <button style={styles.confirmNo} onClick={() => setConfirmDeleteId(null)}>No</button>
                   </div>
                 ) : (
-                  <button style={styles.deleteBtn} onClick={() => setConfirmDeleteId(item.id)}><Trash2 size={14} /></button>
+                  <button style={styles.deleteBtn} onClick={() => { setConfirmDeleteId(m.id); setError(""); }}><Trash2 size={14} /></button>
                 )}
-              </div>
-            ))}
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -1084,8 +1506,11 @@ function MenuEditor({ menu, persistMenu, config, persistConfig, onClose }) {
 
 /* ---------------- COCINA ---------------- */
 
-function CocinaView({ orders, persistOrders }) {
-  const active = orders.filter((o) => o.estado === "pendiente" || o.estado === "preparando").sort((a, b) => a.ts - b.ts);
+function CocinaView({ orders, saveOrder, mesas }) {
+  const active = orders.filter((o) => o.estado !== "listo" && o.estado !== "servido" && o.estado !== "cancelado").sort((a, b) => a.ts - b.ts);
+  const recienListos = orders
+    .filter((o) => o.estado === "listo" && o.listoTs && Date.now() - o.listoTs < 10 * 60 * 1000)
+    .sort((a, b) => b.listoTs - a.listoTs);
   const prevCountRef = useRef(active.length);
   const [flash, setFlash] = useState(false);
 
@@ -1093,18 +1518,32 @@ function CocinaView({ orders, persistOrders }) {
     if (active.length > prevCountRef.current) {
       playBeep();
       setFlash(true);
+      mostrarNotificacionSistema("Comandas — Cocina", "Llegó un pedido nuevo");
       setTimeout(() => setFlash(false), 900);
     }
     prevCountRef.current = active.length;
   }, [active.length]);
 
   const advance = async (id) => {
-    const next = orders.map((o) => (o.id !== id ? o : { ...o, estado: o.estado === "pendiente" ? "preparando" : "listo" }));
-    await persistOrders(next);
+    const o = orders.find((x) => x.id === id);
+    if (!o) return;
+    if (o.estado === "pendiente") { await saveOrder({ ...o, estado: "preparando" }); return; }
+    await saveOrder({ ...o, estado: "listo", listoTs: Date.now() });
+  };
+  const retroceder = async (id) => {
+    const o = orders.find((x) => x.id === id);
+    if (!o) return;
+    await saveOrder({ ...o, estado: "pendiente" });
+  };
+  const deshacerListo = async (id) => {
+    const o = orders.find((x) => x.id === id);
+    if (!o) return;
+    await saveOrder({ ...o, estado: "preparando" });
   };
 
   return (
     <div style={{ ...styles.screenDark, ...(flash ? styles.screenFlash : {}) }}>
+      <AvisoActivarNotificaciones />
       <div style={styles.kdsHeader}>
         <div>
           <div style={styles.kdsEyebrow}>COCINA — PANTALLA EN VIVO <Volume2 size={11} style={{ verticalAlign: -2, marginLeft: 4 }} /></div>
@@ -1113,6 +1552,16 @@ function CocinaView({ orders, persistOrders }) {
         <div style={styles.kdsCount}>{active.length}</div>
       </div>
 
+      {recienListos.length > 0 && (
+        <div style={styles.recienListosRow}>
+          {recienListos.map((o) => (
+            <button key={o.id} style={styles.recienListoChip} onClick={() => deshacerListo(o.id)}>
+              ↺ {mesaNombre(mesas, o.mesa)} — deshacer "listo"
+            </button>
+          ))}
+        </div>
+      )}
+
       {active.length === 0 ? (
         <div style={styles.emptyKitchen}><Flame size={26} strokeWidth={1.5} color="#5C6670" /><div style={styles.emptyKitchenText}>Sin pedidos pendientes</div></div>
       ) : (
@@ -1120,7 +1569,7 @@ function CocinaView({ orders, persistOrders }) {
           {active.map((o) => (
             <div key={o.id} style={{ ...styles.ticket, borderLeftColor: urgencyColor(o.ts) }}>
               <div style={styles.ticketHead}>
-                <span style={styles.ticketMesa}>MESA {o.mesa}{o.editado && <span style={styles.editedBadge}>MODIFICADO</span>}</span>
+                <span style={styles.ticketMesa}>{mesaNombre(mesas, o.mesa).toUpperCase()}{o.editado && <span style={styles.editedBadge}>MODIFICADO</span>}</span>
                 <span style={{ ...styles.ticketTime, color: urgencyColor(o.ts), fontWeight: 700 }}><Clock size={12} style={{ marginRight: 4, verticalAlign: -2 }} />{elapsedLabel(o.ts)}</span>
               </div>
               <div style={styles.ticketExactTime}>Pedido a las {timeLabel(o.ts)}</div>
@@ -1133,9 +1582,14 @@ function CocinaView({ orders, persistOrders }) {
               ))}
               {o.nota && <div style={styles.ticketNote}>"{o.nota}"</div>}
               <div style={styles.ticketDivider} />
-              <button style={{ ...styles.ticketBtn, background: o.estado === "pendiente" ? "#B98A2E" : "#5B7553" }} onClick={() => advance(o.id)}>
-                {o.estado === "pendiente" ? <><Flame size={14} /> Empezar preparación</> : <><Check size={14} /> Marcar listo</>}
-              </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                {o.estado === "preparando" && (
+                  <button style={styles.ticketBackBtn} onClick={() => retroceder(o.id)} title="Volver a pendiente">◀</button>
+                )}
+                <button style={{ ...styles.ticketBtn, flex: 1, background: o.estado === "pendiente" ? "#B98A2E" : "#5B7553" }} onClick={() => advance(o.id)}>
+                  {o.estado === "pendiente" ? <><Flame size={14} /> Empezar preparación</> : <><Check size={14} /> Marcar listo</>}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -1146,11 +1600,12 @@ function CocinaView({ orders, persistOrders }) {
 
 /* ---------------- CAJA ---------------- */
 
-function CajaView({ menu, orders, cuentas, persistCuentas, turnos, turnoAbierto, persistTurnos, config, persistConfig, usuarioActual }) {
+function CajaView({ menu, orders, cuentas, saveCuenta, saveOrdersMap, turnos, turnoAbierto, saveTurno, config, persistConfig, usuarioActual, mesas, persistMesas, ordersParaHistorial, cuentasParaHistorial, historialCompleto, cargandoHistorial, cargarHistorialCompleto }) {
   const [tab, setTab] = useState("mesas");
   const [expandedId, setExpandedId] = useState(null);
+  const esAdmin = tieneRol(usuarioActual, "admin");
 
-  const abiertas = cuentas.filter((c) => c.estado === "abierta").sort((a, b) => a.mesa - b.mesa);
+  const abiertas = cuentas.filter((c) => c.estado === "abierta").sort((a, b) => mesaOrderIndex(mesas, a.mesa) - mesaOrderIndex(mesas, b.mesa));
   const hoyKey = dayKey(Date.now());
   const pagadasHoy = cuentas.filter((c) => c.estado === "pagada" && dayKey(c.pagadaTs) === hoyKey);
   const vendidoHoy = pagadasHoy.reduce((s, c) => s + cuentaGranTotal(orders, c), 0);
@@ -1159,19 +1614,19 @@ function CajaView({ menu, orders, cuentas, persistCuentas, turnos, turnoAbierto,
 
   return (
     <div style={styles.screen}>
-      <div style={styles.mesaGridHeader}>
+      <div className="no-imprimir" style={styles.mesaGridHeader}>
         <div><div style={styles.pageEyebrow}>CAJA</div><div style={styles.pageTitle}>Control de consumo</div></div>
       </div>
 
-      <div style={styles.cajaTabSwitch}>
+      <div className="no-imprimir" style={styles.cajaTabSwitch}>
         <button style={{ ...styles.cajaTabBtn, ...(tab === "turno" ? styles.cajaTabBtnActive : {}) }} onClick={() => setTab("turno")}>Turno</button>
         <button style={{ ...styles.cajaTabBtn, ...(tab === "mesas" ? styles.cajaTabBtnActive : {}) }} onClick={() => setTab("mesas")}>Mesas {abiertas.length > 0 ? `(${abiertas.length})` : ""}</button>
-        <button style={{ ...styles.cajaTabBtn, ...(tab === "historial" ? styles.cajaTabBtnActive : {}) }} onClick={() => setTab("historial")}>Historial</button>
+        {esAdmin && <button style={{ ...styles.cajaTabBtn, ...(tab === "historial" ? styles.cajaTabBtnActive : {}) }} onClick={() => setTab("historial")}>Historial</button>}
         <button style={{ ...styles.cajaTabBtn, ...(tab === "reportes" ? styles.cajaTabBtnActive : {}) }} onClick={() => setTab("reportes")}>Reportes</button>
       </div>
 
       {tab === "turno" && (
-        <TurnoView turnos={turnos} turnoAbierto={turnoAbierto} persistTurnos={persistTurnos} orders={orders} cuentas={cuentas} config={config} persistConfig={persistConfig} usuarioActual={usuarioActual} menu={menu} />
+        <TurnoView turnos={turnos} turnoAbierto={turnoAbierto} saveTurno={saveTurno} orders={orders} cuentas={cuentas} config={config} persistConfig={persistConfig} usuarioActual={usuarioActual} menu={menu} mesas={mesas} ordersParaHistorial={ordersParaHistorial} cuentasParaHistorial={cuentasParaHistorial} historialCompleto={historialCompleto} cargandoHistorial={cargandoHistorial} cargarHistorialCompleto={cargarHistorialCompleto} />
       )}
 
       {tab === "mesas" && (
@@ -1202,62 +1657,65 @@ function CajaView({ menu, orders, cuentas, persistCuentas, turnos, turnoAbierto,
           ) : (
             abiertas.map((c) => (
               <MesaCuentaCard
-                key={c.id} cuenta={c} cuentasAll={cuentas} orders={orders} persistCuentas={persistCuentas}
-                turnoAbierto={!!turnoAbierto} usuarioActual={usuarioActual}
+                key={c.id} cuenta={c} orders={orders} saveCuenta={saveCuenta} saveOrdersMap={saveOrdersMap}
+                turnoAbierto={!!turnoAbierto} usuarioActual={usuarioActual} mesas={mesas}
                 expanded={expandedId === c.id} onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
               />
             ))
           )}
-          {cuentas.some((c) => c.estado === "pagada") && (
+          {esAdmin && cuentas.some((c) => c.estado === "pagada") && (
             <div style={styles.goHistLink} onClick={() => setTab("historial")}>Ver historial completo por día, mes y año →</div>
           )}
         </div>
       )}
 
-      {tab === "historial" && <HistorialView cuentas={cuentas} orders={orders} config={config} />}
-      {tab === "reportes" && <ReportesView cuentas={cuentas} orders={orders} />}
+      {tab === "historial" && esAdmin && <HistorialView cuentasParaHistorial={cuentasParaHistorial} ordersParaHistorial={ordersParaHistorial} historialCompleto={historialCompleto} cargandoHistorial={cargandoHistorial} cargarHistorialCompleto={cargarHistorialCompleto} config={config} mesas={mesas} usuarioActual={usuarioActual} />}
+      {tab === "reportes" && <ReportesView cuentas={cuentas} orders={orders} menu={menu} usuarioActual={usuarioActual} />}
     </div>
   );
 }
 
 /* ---------------- Turno / arqueo de caja ---------------- */
 
-function TurnoView({ turnos, turnoAbierto, persistTurnos, orders, cuentas, config, persistConfig, usuarioActual, menu }) {
+function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, persistConfig, usuarioActual, menu, mesas, ordersParaHistorial, cuentasParaHistorial, historialCompleto, cargandoHistorial, cargarHistorialCompleto }) {
   const [base, setBase] = useState("");
   const [contado, setContado] = useState("");
+  const [observaciones, setObservaciones] = useState("");
   const [confirmandoCierre, setConfirmandoCierre] = useState(false);
 
   const mesasAbiertas = cuentas.filter((c) => c.estado === "abierta");
-  const esAdmin = usuarioActual && usuarioActual.rol === "admin";
+  const esAdmin = tieneRol(usuarioActual, "admin");
 
   const abrirTurno = async () => {
     const baseNum = parseFloat(base) || 0;
-    const turno = { id: uid(), aperturaTs: Date.now(), baseEfectivo: baseNum, estado: "abierto" };
-    await persistTurnos([...turnos, turno]);
+    const turno = { id: uid(), aperturaTs: Date.now(), baseEfectivo: baseNum, estado: "abierto", abiertoPor: usuarioActual.nombre };
+    await saveTurno(turno);
     setBase("");
   };
 
-  const efectivoEsperado = () => {
-    if (!turnoAbierto) return 0;
-    let total = turnoAbierto.baseEfectivo;
+  // Efectivo, tarjeta y transferencia recibidos en este turno (según lo registrado en la app).
+  const totalesPorMetodo = () => {
+    const totales = { efectivo: turnoAbierto ? turnoAbierto.baseEfectivo : 0, tarjeta: 0, transferencia: 0 };
+    if (!turnoAbierto) return totales;
     cuentas.filter((c) => c.estado === "pagada" && c.pagadaTs >= turnoAbierto.aperturaTs).forEach((c) => {
-      pagosDe(c).filter((p) => p.metodoPago === "efectivo").forEach((p) => (total += p.monto));
+      pagosDe(c).forEach((p) => { if (totales[p.metodoPago] !== undefined) totales[p.metodoPago] += p.monto; });
     });
-    return total;
+    return totales;
   };
 
-  const esperado = efectivoEsperado();
+  const { efectivo: esperado, tarjeta: tarjetaEsperada, transferencia: transferenciaEsperada } = totalesPorMetodo();
   const contadoNum = parseFloat(contado) || 0;
   const diferencia = contadoNum - esperado;
 
   const cerrarTurno = async () => {
-    const next = turnos.map((t) =>
-      t.id === turnoAbierto.id
-        ? { ...t, estado: "cerrado", cierreTs: Date.now(), esperado, contado: contadoNum, diferencia }
-        : t
-    );
-    await persistTurnos(next);
-    setContado(""); setConfirmandoCierre(false);
+    await saveTurno({
+      ...turnoAbierto, estado: "cerrado", cierreTs: Date.now(),
+      esperado, contado: contadoNum, diferencia,
+      tarjetaEsperada, transferenciaEsperada,
+      observaciones: observaciones.trim() || null,
+      cerradoPor: usuarioActual.nombre,
+    });
+    setContado(""); setObservaciones(""); setConfirmandoCierre(false);
   };
 
   const cerrados = turnos.filter((t) => t.estado === "cerrado").sort((a, b) => b.cierreTs - a.cierreTs);
@@ -1268,7 +1726,7 @@ function TurnoView({ turnos, turnoAbierto, persistTurnos, orders, cuentas, confi
         <div style={styles.turnoBox}>
           <div style={styles.pageEyebrow}>TURNO CERRADO</div>
           <div style={styles.closeConfirmText}>Registra cuánto efectivo hay en caja para empezar el turno.</div>
-          <input style={styles.editInput} type="number" placeholder="Base de efectivo inicial" value={base} onChange={(e) => setBase(e.target.value)} />
+          <CampoMonto placeholder="Base de efectivo inicial" value={base} onChange={setBase} />
           <button style={{ ...styles.addItemBtn, marginTop: 8 }} onClick={abrirTurno}><PlayCircle size={15} /> Abrir turno</button>
         </div>
       ) : (
@@ -1276,6 +1734,20 @@ function TurnoView({ turnos, turnoAbierto, persistTurnos, orders, cuentas, confi
           <div style={styles.pageEyebrow}>TURNO ABIERTO</div>
           <div style={styles.closeConfirmText}>Abierto {dateTimeLabel(turnoAbierto.aperturaTs)} · base {money(turnoAbierto.baseEfectivo)}</div>
           <div style={styles.cajaTotalValue2}>{money(esperado)}<span style={styles.turnoEsperadoLabel}>efectivo esperado en caja ahora</span></div>
+
+          <div style={styles.metodoResumenRow}>
+            <div style={styles.metodoResumenItem}>
+              <CreditCard size={14} color="#2F6690" />
+              <span style={styles.metodoResumenLabel}>Tarjeta</span>
+              <span style={styles.metodoResumenValue}>{money(tarjetaEsperada)}</span>
+            </div>
+            <div style={styles.metodoResumenItem}>
+              <Smartphone size={14} color="#8A611A" />
+              <span style={styles.metodoResumenLabel}>Transferencia</span>
+              <span style={styles.metodoResumenValue}>{money(transferenciaEsperada)}</span>
+            </div>
+          </div>
+          <div style={styles.closeConfirmText}>Compara estos dos contra el cierre de lote del datáfono y tu banco — no hay nada físico que contar, pero sí vale la pena revisar que cuadren.</div>
 
           {!confirmandoCierre ? (
             <>
@@ -1290,19 +1762,32 @@ function TurnoView({ turnos, turnoAbierto, persistTurnos, orders, cuentas, confi
             <div style={styles.closeConfirmBox}>
               {mesasAbiertas.length > 0 && (
                 <div style={styles.closeConfirmText}>
-                  <b>Ojo:</b> {mesasAbiertas.length} {mesasAbiertas.length === 1 ? "mesa sigue" : "mesas siguen"} sin cobrar (mesa{mesasAbiertas.length > 1 ? "s" : ""} {mesasAbiertas.map((c) => c.mesa).join(", ")}). Si cierras ahora, ese dinero no quedará contado en este turno.
+                  <b>Ojo:</b> {mesasAbiertas.length} {mesasAbiertas.length === 1 ? "mesa sigue" : "mesas siguen"} sin cobrar ({mesasAbiertas.map((c) => mesaNombre(mesas, c.mesa)).join(", ")}). Si cierras ahora, ese dinero no quedará contado en este turno.
                 </div>
               )}
               <div style={styles.closeConfirmText}>Cuenta el efectivo físico en caja y escríbelo aquí:</div>
-              <input style={styles.editInput} type="number" placeholder="Efectivo contado" value={contado} onChange={(e) => setContado(e.target.value)} />
+              <CampoMonto placeholder="Efectivo contado" value={contado} onChange={setContado} />
               {contado !== "" && (
                 <div style={{ ...styles.diferenciaBox, background: diferencia === 0 ? "#E4EEE1" : diferencia > 0 ? "#FBEFD9" : "#FBE2DC" }}>
                   {diferencia === 0 ? "Cuadra exacto ✓" : diferencia > 0 ? `Sobran ${money(diferencia)}` : `Faltan ${money(Math.abs(diferencia))}`}
                 </div>
               )}
+              <div style={styles.closeConfirmText}>Tarjeta esperada: <b>{money(tarjetaEsperada)}</b> · Transferencia esperada: <b>{money(transferenciaEsperada)}</b></div>
+              {contado !== "" && diferencia !== 0 ? (
+                <>
+                  <div style={styles.closeConfirmText}><b>El efectivo no cuadró — cuéntanos por qué (obligatorio):</b></div>
+                  <input autoFocus style={styles.editInput} placeholder="Ej: se dio mal un vuelto, faltó registrar un pago…" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} />
+                </>
+              ) : (
+                <input style={styles.editInput} placeholder="Observaciones si algo de tarjeta/transferencia no cuadra (opcional)" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} />
+              )}
               <div style={{ display: "flex", gap: 8 }}>
                 <button style={styles.cancelEditBtn} onClick={() => setConfirmandoCierre(false)}>Cancelar</button>
-                <button style={{ ...styles.sendBtn, flex: 1, opacity: contado !== "" ? 1 : 0.4 }} disabled={contado === ""} onClick={cerrarTurno}>
+                <button
+                  style={{ ...styles.sendBtn, flex: 1, opacity: contado !== "" && (diferencia === 0 || observaciones.trim()) ? 1 : 0.4 }}
+                  disabled={contado === "" || (diferencia !== 0 && !observaciones.trim())}
+                  onClick={cerrarTurno}
+                >
                   <Lock size={15} /> Confirmar cierre
                 </button>
               </div>
@@ -1315,51 +1800,39 @@ function TurnoView({ turnos, turnoAbierto, persistTurnos, orders, cuentas, confi
         <>
           <div style={{ ...styles.catLabel, marginTop: 20 }}>TURNOS ANTERIORES</div>
           {cerrados.map((t) => (
-            <div key={t.id} style={styles.turnoRow}>
-              <span style={styles.cierreDate}>{dateTimeLabel(t.aperturaTs)} → {timeLabel(t.cierreTs)}</span>
-              <span style={{ ...styles.turnoDiff, color: t.diferencia === 0 ? "#5B7553" : "#C1442D" }}>
-                {t.diferencia === 0 ? "Cuadró" : t.diferencia > 0 ? `+${money(t.diferencia)}` : money(t.diferencia)}
-              </span>
+            <div key={t.id} style={styles.turnoRowCol}>
+              <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
+                <span style={styles.cierreDate}>{dateTimeLabel(t.aperturaTs)} → {timeLabel(t.cierreTs)}</span>
+                <span style={{ ...styles.turnoDiff, color: t.diferencia === 0 ? "#5B7553" : "#C1442D" }}>
+                  {t.diferencia === 0 ? "Cuadró" : t.diferencia > 0 ? `+${money(t.diferencia)}` : money(t.diferencia)}
+                </span>
+              </div>
+              {(t.tarjetaEsperada > 0 || t.transferenciaEsperada > 0) && (
+                <div style={styles.turnoSubRow}>Tarjeta {money(t.tarjetaEsperada || 0)} · Transferencia {money(t.transferenciaEsperada || 0)}</div>
+              )}
+              {t.observaciones && <div style={styles.turnoObsRow}>"{t.observaciones}"</div>}
             </div>
           ))}
         </>
       )}
 
       {esAdmin && (
-        <RespaldoBox menu={menu} orders={orders} cuentas={cuentas} config={config} turnos={turnos} persistConfig={persistConfig} usuarioActual={usuarioActual} />
+        <RespaldoBox menu={menu} orders={orders} cuentas={cuentas} config={config} turnos={turnos} mesas={mesas} persistConfig={persistConfig} usuarioActual={usuarioActual} ordersParaHistorial={ordersParaHistorial} cuentasParaHistorial={cuentasParaHistorial} historialCompleto={historialCompleto} cargandoHistorial={cargandoHistorial} cargarHistorialCompleto={cargarHistorialCompleto} />
       )}
 
-      <div style={{ ...styles.catLabel, marginTop: 24 }}>{esAdmin ? "USUARIOS Y SEGURIDAD" : "MI CUENTA"}</div>
+      {esAdmin && <PanelSenalesAlerta cuentas={cuentasParaHistorial} turnos={turnos} />}
+
+      <div style={{ ...styles.catLabel, marginTop: 24 }}>USUARIOS Y SEGURIDAD</div>
       {esAdmin ? (
         <GestionUsuarios config={config} persistConfig={persistConfig} usuarioActual={usuarioActual} />
       ) : (
-        <MiActividad config={config} usuarioActual={usuarioActual} />
+        <div style={styles.lockedNote}><Lock size={11} /> Solo un administrador puede gestionar usuarios y ver el registro de seguridad.</div>
       )}
     </div>
   );
 }
 
-function MiActividad({ config, usuarioActual }) {
-  const auditLog = config.auditLog || [];
-  const relevantes = auditLog.filter((r) => r.accion.includes(`"${usuarioActual.nombre}"`));
-  return (
-    <div>
-      <div style={styles.lockedNote}><Lock size={11} /> Solo un administrador puede gestionar usuarios. Aquí ves las acciones registradas sobre tu propia cuenta.</div>
-      {relevantes.length === 0 ? (
-        <div style={styles.cajaEmptyText}>No hay acciones registradas sobre tu cuenta todavía.</div>
-      ) : (
-        relevantes.map((r, i) => (
-          <div key={i} style={styles.turnoRow}>
-            <span style={styles.cierreDate}>{dateTimeLabel(r.ts)}</span>
-            <span style={styles.auditText}>{r.actor}: {r.accion}</span>
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
-
-function RespaldoBox({ menu, orders, cuentas, config, turnos, persistConfig, usuarioActual }) {
+function RespaldoBox({ menu, orders, cuentas, config, turnos, mesas, persistConfig, usuarioActual, ordersParaHistorial, cuentasParaHistorial, historialCompleto, cargandoHistorial, cargarHistorialCompleto }) {
   const [restaurando, setRestaurando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [archivo, setArchivo] = useState(null);
@@ -1387,9 +1860,10 @@ function RespaldoBox({ menu, orders, cuentas, config, turnos, persistConfig, usu
   const confirmarRestauracion = async () => {
     if (!archivo) return;
     await saveShared("menu", archivo.menu);
-    await saveShared("orders", archivo.orders);
-    await saveShared("cuentas", archivo.cuentas);
-    await saveShared("turnos", archivo.turnos || []);
+    await saveCollectionArray("orders", archivo.orders);
+    await saveCollectionArray("cuentas", archivo.cuentas);
+    await saveCollectionArray("turnos", archivo.turnos || []);
+    if (archivo.mesas && archivo.mesas.length > 0) await saveShared("mesas", archivo.mesas);
     const nuevoConfig = {
       ...archivo.config,
       auditLog: [{ ts: Date.now(), accion: "Restauró un respaldo desde archivo", actor: usuarioActual.nombre }, ...(archivo.config.auditLog || [])].slice(0, 50),
@@ -1398,12 +1872,29 @@ function RespaldoBox({ menu, orders, cuentas, config, turnos, persistConfig, usu
     window.location.reload();
   };
 
+  const descargarPendiente = useRef(false);
+  // Una vez que el historial completo termina de cargar, dispara la descarga.
+  useEffect(() => {
+    if (descargarPendiente.current && historialCompleto) {
+      descargarPendiente.current = false;
+      descargarRespaldo({ menu, orders: ordersParaHistorial, cuentas: cuentasParaHistorial, config, turnos, mesas });
+    }
+  }, [historialCompleto]);
+  const onClickDescargar = () => {
+    if (historialCompleto) {
+      descargarRespaldo({ menu, orders: ordersParaHistorial, cuentas: cuentasParaHistorial, config, turnos, mesas });
+    } else {
+      descargarPendiente.current = true;
+      cargarHistorialCompleto();
+    }
+  };
+
   return (
     <div style={{ ...styles.catLabel, marginTop: 24 }}>
       RESPALDO
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-        <button style={styles.modoChoiceBtn} onClick={() => descargarRespaldo({ menu, orders, cuentas, config, turnos })}>
-          <Download size={15} /> Descargar copia de seguridad completa
+        <button style={styles.modoChoiceBtn} onClick={onClickDescargar} disabled={cargandoHistorial}>
+          <Download size={15} /> {cargandoHistorial ? "Preparando respaldo completo…" : "Descargar copia de seguridad completa"}
         </button>
         {!restaurando ? (
           <button style={styles.inlineAddLink} onClick={() => setRestaurando(true)}>Restaurar desde un archivo de respaldo</button>
@@ -1427,33 +1918,142 @@ function RespaldoBox({ menu, orders, cuentas, config, turnos, persistConfig, usu
           </div>
         )}
       </div>
+      <RespaldosAutomaticosBox />
     </div>
   );
 }
 
-/* ---------------- Cobro por mesa (con propina, descuento y división) ---------------- */
+function RespaldosAutomaticosBox() {
+  const [dias, setDias] = useState(null); // null = sin cargar todavía
+  const [cargando, setCargando] = useState(false);
+
+  const cargarLista = async () => {
+    setCargando(true);
+    const hoy = new Date();
+    const candidatos = [];
+    for (let i = 1; i <= 14; i++) {
+      const d = new Date(hoy.getTime() - i * 24 * 60 * 60 * 1000);
+      candidatos.push(dayKey(d.getTime()));
+    }
+    const resultados = await Promise.all(candidatos.map((dk) => getRecord(`respaldos/${dk}`)));
+    setDias(resultados.filter(Boolean).sort((a, b) => b.dia.localeCompare(a.dia)));
+    setCargando(false);
+  };
+
+  const descargarDia = (r) => {
+    const data = { version: 2, exportadoTs: Date.now(), menu: r.menu, orders: r.orders, cuentas: r.cuentas, config: r.config, turnos: [], mesas: r.mesas };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `respaldo_automatico_${r.dia}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      {dias === null ? (
+        <button style={styles.inlineAddLink} onClick={cargarLista} disabled={cargando}>
+          {cargando ? "Buscando…" : "Ver copias automáticas de los últimos 14 días"}
+        </button>
+      ) : dias.length === 0 ? (
+        <div style={styles.cajaEmptyText}>Todavía no hay copias automáticas (se generan solas cada día que un admin abre la app — la de hoy se hace mañana).</div>
+      ) : (
+        <>
+          <div style={styles.catLabel}>COPIAS AUTOMÁTICAS RECIENTES</div>
+          {dias.map((r) => (
+            <div key={r.dia} style={styles.turnoRow}>
+              <span style={styles.cierreDate}>{r.dia} · {r.cuentas.length} {r.cuentas.length === 1 ? "cuenta" : "cuentas"}</span>
+              <button style={styles.inlineLink} onClick={() => descargarDia(r)}><Download size={11} style={{ verticalAlign: -1 }} /> descargar</button>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Junta en un solo lugar las señales que ya existían regadas por la app
+ * (cancelaciones, descuentos, descuadres de turno) para que el admin no
+ * tenga que ir a buscarlas una por una — no es una acusación, es solo un
+ * resumen para que decidas tú si algo amerita una conversación. */
+function PanelSenalesAlerta({ cuentas, turnos }) {
+  const [expandido, setExpandido] = useState(false);
+
+  const porPersona = {};
+  const tocar = (nombre) => {
+    if (!porPersona[nombre]) porPersona[nombre] = { cancelaciones: 0, montoCancelado: 0, descuentos: 0, montoDescontado: 0, turnosConFaltante: 0, montoFaltante: 0 };
+    return porPersona[nombre];
+  };
+
+  cuentas.filter((c) => c.estado === "cancelada" && (c.montoCancelado || 0) > 0 && c.canceladaPor).forEach((c) => {
+    const p = tocar(c.canceladaPor);
+    p.cancelaciones += 1;
+    p.montoCancelado += c.montoCancelado || 0;
+  });
+  cuentas.filter((c) => c.descuento && c.descuento.aplicadoPor).forEach((c) => {
+    const p = tocar(c.descuento.aplicadoPor);
+    p.descuentos += 1;
+    p.montoDescontado += c.descuento.monto || 0;
+  });
+  turnos.filter((t) => t.estado === "cerrado" && t.diferencia < 0 && t.cerradoPor).forEach((t) => {
+    const p = tocar(t.cerradoPor);
+    p.turnosConFaltante += 1;
+    p.montoFaltante += Math.abs(t.diferencia);
+  });
+
+  const filas = Object.entries(porPersona)
+    .map(([nombre, d]) => ({ nombre, ...d, alerta: d.cancelaciones >= 3 || d.turnosConFaltante >= 2 }))
+    .sort((a, b) => (b.alerta ? 1 : 0) - (a.alerta ? 1 : 0) || (b.montoCancelado + b.montoFaltante) - (a.montoCancelado + a.montoFaltante));
+
+  const hayAlertas = filas.some((f) => f.alerta);
+
+  if (filas.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <button style={styles.canceladasToggle} onClick={() => setExpandido((v) => !v)}>
+        <AlertTriangle size={13} color={hayAlertas ? "#C1442D" : "#B98A2E"} />
+        <span style={{ color: hayAlertas ? "#8A3A2B" : "#5C5648" }}>Señales de alerta (últimos 35 días){hayAlertas ? " — hay algo que revisar" : ""}</span>
+        <span>{expandido ? "▲" : "▼"}</span>
+      </button>
+      {expandido && (
+        <div style={{ marginTop: 8 }}>
+          {filas.map((f) => (
+            <div key={f.nombre} style={{ ...styles.turnoRowCol, ...(f.alerta ? { background: "#FBE2DC", borderRadius: 8, padding: "8px 10px" } : {}) }}>
+              <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
+                <span style={styles.pagoRowEtiqueta}>{f.nombre}</span>
+                {f.alerta && <AlertTriangle size={13} color="#C1442D" />}
+              </div>
+              <div style={styles.turnoSubRow}>
+                {f.cancelaciones > 0 && <>· {f.cancelaciones} {f.cancelaciones === 1 ? "cancelación" : "cancelaciones"} ({money(f.montoCancelado)}) </>}
+                {f.descuentos > 0 && <>· {f.descuentos} {f.descuentos === 1 ? "descuento" : "descuentos"} ({money(f.montoDescontado)}) </>}
+                {f.turnosConFaltante > 0 && <>· {f.turnosConFaltante} {f.turnosConFaltante === 1 ? "turno con faltante" : "turnos con faltante"} ({money(f.montoFaltante)})</>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function GestionUsuarios({ config, persistConfig, usuarioActual }) {
   const usuarios = config.usuarios || [];
   const auditLog = config.auditLog || [];
   const [nombre, setNombre] = useState("");
   const [pin, setPin] = useState("");
-  const [rol, setRol] = useState("cajero");
+  const [rolesNuevo, setRolesNuevo] = useState(["mesero"]);
   const [error, setError] = useState("");
   const [resetId, setResetId] = useState(null);
   const [resetPin, setResetPin] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [pinesVisibles, setPinesVisibles] = useState({}); // { [usuarioId]: true }
+  const [pinesVisibles, setPinesVisibles] = useState({});
 
   const registrar = (accion) => ({ ts: Date.now(), accion, actor: usuarioActual.nombre });
 
-  const togglePinVisible = (u) => {
-    const yaVisible = !!pinesVisibles[u.id];
-    if (!yaVisible) {
-      // queda registrado en el log de seguridad cada vez que alguien revela un PIN
-      persistConfig({ ...config, auditLog: [registrar(`Vio el PIN de "${u.nombre}"`), ...auditLog].slice(0, 50) });
-    }
-    setPinesVisibles((prev) => ({ ...prev, [u.id]: !yaVisible }));
+  const toggleRolNuevo = (r) => {
+    setRolesNuevo((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   };
 
   const agregarUsuario = async () => {
@@ -1461,21 +2061,33 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
     if (!nombre.trim()) { setError("Escribe un nombre."); return; }
     if (usuarios.some((u) => u.nombre.toLowerCase() === nombre.trim().toLowerCase())) { setError("Ya existe un usuario con ese nombre."); return; }
     if (pin.length < 4) { setError("El PIN debe tener al menos 4 dígitos."); return; }
-    const nuevo = { id: uid(), nombre: nombre.trim(), pin, rol };
+    if (rolesNuevo.length === 0) { setError("Elige al menos un rol."); return; }
+    const nuevo = { id: uid(), nombre: nombre.trim(), pin, roles: rolesNuevo };
     await persistConfig({
       ...config,
       usuarios: [...usuarios, nuevo],
-      auditLog: [registrar(`Creó el usuario "${nuevo.nombre}" (${rol === "admin" ? "Admin" : "Cajero"})`), ...auditLog].slice(0, 50),
+      auditLog: [registrar(`Creó el usuario "${nuevo.nombre}" (${rolesNuevo.map(rolLabel).join(" + ")})`), ...auditLog].slice(0, 50),
     });
-    setNombre(""); setPin(""); setRol("cajero");
+    setNombre(""); setPin(""); setRolesNuevo(["mesero"]);
   };
 
-  const cambiarRol = async (u) => {
-    const nuevoRol = u.rol === "admin" ? "cajero" : "admin";
-    const admins = usuarios.filter((x) => x.rol === "admin");
-    if (u.rol === "admin" && admins.length <= 1) { setError("Debe quedar al menos un administrador."); return; }
-    const next = usuarios.map((x) => (x.id === u.id ? { ...x, rol: nuevoRol } : x));
-    await persistConfig({ ...config, usuarios: next, auditLog: [registrar(`Cambió el rol de "${u.nombre}" a ${nuevoRol === "admin" ? "Admin" : "Cajero"}`), ...auditLog].slice(0, 50) });
+  // Cada usuario puede tener varios roles a la vez (ej. Mesero + Cajero).
+  // Tocar una etiqueta la prende/apaga, en vez de reemplazar todo el rol.
+  const toggleRolUsuario = async (u, r) => {
+    setError("");
+    const rolesActuales = rolesDe(u);
+    const tieneEseRol = rolesActuales.includes(r);
+    if (tieneEseRol) {
+      if (rolesActuales.length === 1) { setError("El usuario debe tener al menos un rol."); return; }
+      if (r === "admin") {
+        const admins = usuarios.filter((x) => rolesDe(x).includes("admin"));
+        if (admins.length <= 1) { setError("Debe quedar al menos un administrador."); return; }
+      }
+    }
+    const nuevosRoles = tieneEseRol ? rolesActuales.filter((x) => x !== r) : [...rolesActuales, r];
+    const next = usuarios.map((x) => (x.id === u.id ? { id: x.id, nombre: x.nombre, pin: x.pin, roles: nuevosRoles } : x));
+    const accion = tieneEseRol ? `Le quitó el rol ${rolLabel(r)} a "${u.nombre}"` : `Le agregó el rol ${rolLabel(r)} a "${u.nombre}"`;
+    await persistConfig({ ...config, usuarios: next, auditLog: [registrar(accion), ...auditLog].slice(0, 50) });
   };
 
   const resetearPin = async (u) => {
@@ -1486,11 +2098,20 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
   };
 
   const eliminarUsuario = async (u) => {
-    const admins = usuarios.filter((x) => x.rol === "admin");
-    if (u.rol === "admin" && admins.length <= 1) { setError("Debe quedar al menos un administrador."); return; }
+    const admins = usuarios.filter((x) => rolesDe(x).includes("admin"));
+    if (tieneRol(u, "admin") && admins.length <= 1) { setError("Debe quedar al menos un administrador."); return; }
     const next = usuarios.filter((x) => x.id !== u.id);
     await persistConfig({ ...config, usuarios: next, auditLog: [registrar(`Eliminó al usuario "${u.nombre}"`), ...auditLog].slice(0, 50) });
     setConfirmDeleteId(null);
+  };
+
+  const togglePinVisible = async (u) => {
+    const yaVisible = !!pinesVisibles[u.id];
+    setPinesVisibles((prev) => ({ ...prev, [u.id]: !yaVisible }));
+    if (!yaVisible) {
+      // Deja constancia de que alguien vio el PIN de este usuario
+      await persistConfig({ ...config, auditLog: [registrar(`Vio el PIN de "${u.nombre}"`), ...auditLog].slice(0, 50) });
+    }
   };
 
   return (
@@ -1501,18 +2122,23 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
           <div style={styles.usuarioRowLeft}>
             <UserCircle2 size={16} color="#8A8272" />
             <span style={styles.pagoRowEtiqueta}>{u.nombre}</span>
-            <span style={styles.rolBadge}>{u.rol === "admin" ? "Admin" : "Cajero"}</span>
-            <button style={styles.pinRevealBtn} onClick={() => togglePinVisible(u)} title={pinesVisibles[u.id] ? "Ocultar PIN" : "Ver PIN"}>
-              {pinesVisibles[u.id] ? (
-                <><EyeOff size={12} /> {u.pin}</>
-              ) : (
-                <><Eye size={12} /> ••••</>
-              )}
+            <span style={styles.rolBadge}>{rolesLabel(u)}</span>
+          </div>
+
+          <div style={styles.pinVisorRow}>
+            <button style={styles.pinVisorBtn} onClick={() => togglePinVisible(u)}>
+              {pinesVisibles[u.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+              {pinesVisibles[u.id] ? <span style={styles.pinVisorValue}>{u.pin}</span> : "mostrar PIN"}
             </button>
           </div>
+
           <div style={styles.usuarioRowActions}>
-            <button style={styles.inlineLink} onClick={() => cambiarRol(u)}>{u.rol === "admin" ? "hacer cajero" : "hacer admin"}</button>
-            <button style={styles.inlineLink} onClick={() => { setResetId(resetId === u.id ? null : u.id); setResetPin(""); setError(""); }}>PIN</button>
+            <div style={styles.rolPillsRowSmall}>
+              <button style={{ ...styles.rolPillSmall, ...(tieneRol(u, "mesero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolUsuario(u, "mesero")}>Mesero</button>
+              <button style={{ ...styles.rolPillSmall, ...(tieneRol(u, "cajero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolUsuario(u, "cajero")}>Cajero</button>
+              <button style={{ ...styles.rolPillSmall, ...(tieneRol(u, "admin") ? styles.rolPillActive : {}) }} onClick={() => toggleRolUsuario(u, "admin")}>Admin</button>
+            </div>
+            <button style={styles.inlineLink} onClick={() => { setResetId(resetId === u.id ? null : u.id); setResetPin(""); setError(""); }}>PIN nuevo</button>
             {u.nombre !== usuarioActual.nombre && (
               confirmDeleteId === u.id ? (
                 <>
@@ -1532,16 +2158,17 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
           )}
         </div>
       ))}
-
-      <MeserosGestion config={config} persistConfig={persistConfig} registrar={registrar} auditLog={auditLog} />
+      {usuarios.length === 0 && <div style={styles.cajaEmptyText}>Todavía no has creado ningún usuario.</div>}
 
       <div style={{ ...styles.catLabel, marginTop: 16 }}>AGREGAR USUARIO</div>
       <div style={styles.turnoBox}>
+        <div style={styles.closeConfirmText}>Solo tú, como administrador, puedes crear usuarios — y son los únicos que podrán entrar a la app. Puedes marcar más de un rol para la misma persona (ej. Mesero + Cajero).</div>
         <input style={styles.editInput} placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <input style={styles.editInput} type="password" inputMode="numeric" placeholder="PIN (mínimo 4 dígitos)" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
         <div style={styles.rolPillsRow}>
-          <button style={{ ...styles.rolPill, ...(rol === "cajero" ? styles.rolPillActive : {}) }} onClick={() => setRol("cajero")}>Cajero</button>
-          <button style={{ ...styles.rolPill, ...(rol === "admin" ? styles.rolPillActive : {}) }} onClick={() => setRol("admin")}>Admin</button>
+          <button style={{ ...styles.rolPill, ...(rolesNuevo.includes("mesero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolNuevo("mesero")}>Mesero</button>
+          <button style={{ ...styles.rolPill, ...(rolesNuevo.includes("cajero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolNuevo("cajero")}>Cajero</button>
+          <button style={{ ...styles.rolPill, ...(rolesNuevo.includes("admin") ? styles.rolPillActive : {}) }} onClick={() => toggleRolNuevo("admin")}>Admin</button>
         </div>
         {error && <div style={styles.pinError}>{error}</div>}
         <button style={styles.addItemBtn} onClick={agregarUsuario}><Plus size={15} /> Agregar usuario</button>
@@ -1562,70 +2189,44 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
   );
 }
 
-function MeserosGestion({ config, persistConfig, registrar, auditLog }) {
-  const waiters = config.waiters || [];
-  const [resetId, setResetId] = useState(null);
-  const [resetPin, setResetPin] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [pinesVisibles, setPinesVisibles] = useState({});
-  const [error, setError] = useState("");
+/** Campo para escribir montos en pesos. A diferencia de un <input type="number">,
+ * SÍ entiende el punto como separador de miles (como se escribe en Colombia:
+ * "50.000") — solo guarda los dígitos por dentro y siempre muestra el número
+ * formateado, así que nunca se puede escribir un monto ambiguo o mal leído. */
+function CampoMonto({ value, onChange, placeholder, style, autoFocus }) {
+  const digitos = (value || "").toString().replace(/\D/g, "");
+  const mostrado = digitos ? Number(digitos).toLocaleString("es-CO") : "";
+  return (
+    <input
+      autoFocus={autoFocus}
+      style={style || styles.editInput}
+      type="text"
+      inputMode="numeric"
+      placeholder={placeholder}
+      value={mostrado}
+      onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+    />
+  );
+}
 
-  const togglePinVisible = (w) => {
-    const yaVisible = !!pinesVisibles[w.id];
-    if (!yaVisible) {
-      persistConfig({ ...config, auditLog: [registrar(`Vio el PIN del mesero "${w.nombre}"`), ...auditLog].slice(0, 50) });
-    }
-    setPinesVisibles((prev) => ({ ...prev, [w.id]: !yaVisible }));
-  };
+/** Banner discreto para activar notificaciones del sistema — se puede
+ * descartar, y no vuelve a aparecer en esta sesión si ya se descartó o si
+ * el navegador no las soporta. */
+function AvisoActivarNotificaciones() {
+  const soportado = typeof window !== "undefined" && "Notification" in window;
+  const [permiso, setPermiso] = useState(soportado ? Notification.permission : "unsupported");
+  const [descartado, setDescartado] = useState(false);
 
-  const resetearPin = async (w) => {
-    if (resetPin.length < 4) { setError("El nuevo PIN debe tener al menos 4 dígitos."); return; }
-    const next = waiters.map((x) => (x.id === w.id ? { ...x, pin: resetPin } : x));
-    await persistConfig({ ...config, waiters: next, auditLog: [registrar(`Restableció el PIN del mesero "${w.nombre}"`), ...auditLog].slice(0, 50) });
-    setResetId(null); setResetPin(""); setError("");
-  };
-
-  const eliminarMesero = async (w) => {
-    const next = waiters.filter((x) => x.id !== w.id);
-    await persistConfig({ ...config, waiters: next, auditLog: [registrar(`Eliminó al mesero "${w.nombre}"`), ...auditLog].slice(0, 50) });
-    setConfirmDeleteId(null);
-  };
-
-  if (waiters.length === 0) return null;
+  if (!soportado || permiso !== "default" || descartado) return null;
 
   return (
-    <>
-      <div style={{ ...styles.catLabel, marginTop: 16 }}>MESEROS</div>
-      {waiters.map((w) => (
-        <div key={w.id} style={styles.usuarioRow}>
-          <div style={styles.usuarioRowLeft}>
-            <UserCircle2 size={16} color="#8A8272" />
-            <span style={styles.pagoRowEtiqueta}>{w.nombre}</span>
-            <button style={styles.pinRevealBtn} onClick={() => togglePinVisible(w)} title={pinesVisibles[w.id] ? "Ocultar PIN" : "Ver PIN"}>
-              {pinesVisibles[w.id] ? (<><EyeOff size={12} /> {w.pin}</>) : (<><Eye size={12} /> ••••</>)}
-            </button>
-          </div>
-          <div style={styles.usuarioRowActions}>
-            <button style={styles.inlineLink} onClick={() => { setResetId(resetId === w.id ? null : w.id); setResetPin(""); setError(""); }}>PIN</button>
-            {confirmDeleteId === w.id ? (
-              <>
-                <button style={styles.confirmYes} onClick={() => eliminarMesero(w)}>Sí</button>
-                <button style={styles.confirmNo} onClick={() => setConfirmDeleteId(null)}>No</button>
-              </>
-            ) : (
-              <button style={{ ...styles.inlineLink, color: "#C1442D" }} onClick={() => setConfirmDeleteId(w.id)}>eliminar</button>
-            )}
-          </div>
-          {resetId === w.id && (
-            <div style={styles.resetPinRow}>
-              <input style={styles.editInput} type="password" inputMode="numeric" placeholder="Nuevo PIN para este mesero" value={resetPin} onChange={(e) => setResetPin(e.target.value.replace(/\D/g, ""))} />
-              <button style={styles.addItemBtn} onClick={() => resetearPin(w)}><KeyRound size={14} /> Guardar</button>
-            </div>
-          )}
-          {error && resetId === w.id && <div style={styles.pinError}>{error}</div>}
-        </div>
-      ))}
-    </>
+    <div style={styles.avisoNotifBanner}>
+      <span>Activa las notificaciones para enterarte aunque cambies de pantalla (no llegan con el celular bloqueado).</span>
+      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <button style={styles.avisoNotifBtn} onClick={() => Notification.requestPermission().then(setPermiso)}>Activar</button>
+        <button style={styles.avisoNotifCerrar} onClick={() => setDescartado(true)}>✕</button>
+      </div>
+    </div>
   );
 }
 
@@ -1645,7 +2246,7 @@ function MetodoPills({ selected, onSelect }) {
   );
 }
 
-function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbierto, usuarioActual, expanded, onToggle }) {
+function MesaCuentaCard({ cuenta, orders, saveCuenta, saveOrdersMap, turnoAbierto, usuarioActual, mesas, expanded, onToggle }) {
   const subtotal = cuentaSubtotal(orders, cuenta.id);
   const total = cuentaGranTotal(orders, cuenta);
   const items = cuentaItemCount(orders, cuenta.id);
@@ -1657,6 +2258,7 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
 
   const [modoLocal, setModoLocal] = useState(null);
   const [metodoSel, setMetodoSel] = useState(null);
+  const [efectivoRecibido, setEfectivoRecibido] = useState("");
   const [numPartes, setNumPartes] = useState(2);
   const [cart, setCart] = useState({});
   const [etiqueta, setEtiqueta] = useState("");
@@ -1664,29 +2266,66 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
   const [mostrarDescuento, setMostrarDescuento] = useState(false);
   const [descMonto, setDescMonto] = useState("");
   const [descMotivo, setDescMotivo] = useState("");
+  const [confirmCancelarCuenta, setConfirmCancelarCuenta] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState("");
 
-  useEffect(() => { if (!expanded) { setModoLocal(null); setMetodoSel(null); setCart({}); setEtiqueta(""); setMostrarDescuento(false); } }, [expanded]);
+  useEffect(() => { if (!expanded) { setModoLocal(null); setMetodoSel(null); setEfectivoRecibido(""); setCart({}); setEtiqueta(""); setMostrarDescuento(false); } }, [expanded]);
+  const seleccionarMetodo = (m) => { setMetodoSel(m); setEfectivoRecibido(""); };
+
+  // Calculadora de vueltos: solo aplica cuando el método elegido es efectivo.
+  const renderVueltos = (monto) => {
+    if (metodoSel !== "efectivo") return null;
+    const recibido = parseFloat(efectivoRecibido) || 0;
+    const vueltos = recibido - monto;
+    return (
+      <div style={styles.vueltosBox}>
+        <CampoMonto placeholder={`¿Con cuánto paga? (a cobrar ${money(monto)})`} value={efectivoRecibido} onChange={setEfectivoRecibido} />
+        {efectivoRecibido !== "" && (
+          <div style={{ ...styles.diferenciaBox, background: vueltos >= 0 ? "#E4EEE1" : "#FBE2DC" }}>
+            {vueltos >= 0 ? `Total a devolver: ${money(vueltos)}` : `Faltan ${money(Math.abs(vueltos))}`}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const effectiveModo = cuenta.splitMode || modoLocal;
 
   async function patchCuenta(patch) {
-    const next = cuentasAll.map((c) => (c.id === cuenta.id ? { ...c, ...patch } : c));
-    await persistCuentas(next);
+    await saveCuenta({ ...cuenta, ...patch });
   }
 
+  const cobrandoRef = useRef(false);
+  const [cobrando, setCobrando] = useState(false);
   async function guardarPago(pago) {
-    const next = cuentasAll.map((c) => {
-      if (c.id !== cuenta.id) return c;
-      const nuevosPagos = [...pagosDe(c), pago];
+    if (cobrandoRef.current) return; // ya se está registrando un pago — ignora el segundo toque para no cobrar doble
+    cobrandoRef.current = true;
+    setCobrando(true);
+    try {
+      const nuevosPagos = [...pagosDe(cuenta), pago];
       const totalPagado = nuevosPagos.reduce((s, p) => s + p.monto, 0);
       const completo = totalPagado >= total - 1;
-      return { ...c, pagos: nuevosPagos, splitMode: pago.tipo === "unico" ? c.splitMode : effectiveModo, estado: completo ? "pagada" : "abierta", pagadaTs: completo ? Date.now() : c.pagadaTs };
-    });
-    await persistCuentas(next);
-    setMetodoSel(null); setCart({}); setEtiqueta("");
+      if (completo) {
+        // La mesa ya se pagó por completo — si quedó algo sin marcar "listo" o
+        // "servido" en Cocina/Mesero, lo cerramos ahora como servido (si ya se
+        // pagó es porque ya se consumió). Si no, se queda como un pedido
+        // fantasma activo para siempre, aunque ya esté cobrado.
+        const sinCerrar = cuentaOrders(orders, cuenta.id).filter((o) => o.estado === "pendiente" || o.estado === "preparando" || o.estado === "listo");
+        if (sinCerrar.length > 0) {
+          const patch = {};
+          sinCerrar.forEach((o) => { patch[o.id] = { ...o, estado: "servido" }; });
+          await saveOrdersMap(patch);
+        }
+      }
+      await saveCuenta({ ...cuenta, pagos: nuevosPagos, splitMode: effectiveModo || cuenta.splitMode || null, estado: completo ? "pagada" : "abierta", pagadaTs: completo ? Date.now() : cuenta.pagadaTs });
+      setMetodoSel(null); setEfectivoRecibido(""); setCart({}); setEtiqueta("");
+    } finally {
+      cobrandoRef.current = false;
+      setCobrando(false);
+    }
   }
 
-  const esAdmin = usuarioActual && usuarioActual.rol === "admin";
+  const esAdmin = tieneRol(usuarioActual, "admin");
 
   const setPropina = async (pct) => {
     const monto = pct === "custom" ? Math.round(parseFloat(propinaCustom) || 0) : Math.round((subtotal * pct) / 100);
@@ -1700,6 +2339,34 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
     setMostrarDescuento(false); setDescMonto(""); setDescMotivo("");
   };
   const quitarDescuento = async () => { if (esAdmin) patchCuenta({ descuento: null }); };
+  const quitarPropina = async () => { if (pagos.length === 0) patchCuenta({ propina: null }); };
+
+  // Al cancelar la cuenta, también hay que cancelar sus pedidos activos —
+  // si no, se quedan "pendientes" para siempre y Cocina los sigue mostrando
+  // como si nada, aunque la mesa ya no exista en Caja (pedido fantasma).
+  const cancelarPedidosDeCuenta = async () => {
+    const activos = cuentaOrders(orders, cuenta.id).filter((o) => o.estado !== "cancelado");
+    if (activos.length === 0) return;
+    const patch = {};
+    activos.forEach((o) => { patch[o.id] = { ...o, estado: "cancelado" }; });
+    await saveOrdersMap(patch);
+  };
+
+  const cancelarCuenta = async () => {
+    if (total > 0) {
+      if (!esAdmin) return;
+      if (!motivoCancelacion.trim()) return; // el motivo es obligatorio cuando hay dinero de por medio
+      await cancelarPedidosDeCuenta();
+      await patchCuenta({
+        estado: "cancelada", canceladaTs: Date.now(), canceladaPor: usuarioActual.nombre,
+        motivoCancelacion: motivoCancelacion.trim(), montoCancelado: total,
+      });
+    } else {
+      await cancelarPedidosDeCuenta();
+      await patchCuenta({ estado: "cancelada", canceladaTs: Date.now(), canceladaPor: usuarioActual.nombre, montoCancelado: 0 });
+    }
+    setConfirmCancelarCuenta(false); setMotivoCancelacion("");
+  };
 
   const confirmarUnico = () => { if (!metodoSel) return; guardarPago({ id: uid(), ts: Date.now(), metodoPago: metodoSel, monto: total, tipo: "unico", etiqueta: null, items: itemsAgregados(orders, cuenta.id), procesadoPor: usuarioActual.nombre }); };
 
@@ -1719,6 +2386,7 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
   const addToCart = (key, d) => {
     setCart((prev) => {
       const it = agregados.find((a) => a.key === key);
+      if (!it) return prev;
       const pend = it.qty - (asignada[key] || 0);
       const cur = prev[key] || 0;
       const next = Math.max(0, Math.min(pend, cur + d));
@@ -1729,8 +2397,12 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
   };
   const confirmarProducto = () => {
     if (!metodoSel || Object.keys(cart).length === 0) return;
-    const itemsSel = Object.entries(cart).map(([key, qty]) => { const it = agregados.find((a) => a.key === key); return { key, name: it.name, price: it.price, qty }; });
-    guardarPago({ id: uid(), ts: Date.now(), metodoPago: metodoSel, monto: cartMonto, tipo: "por_producto", etiqueta: etiqueta.trim() || `Persona ${numPersonaSugerido}`, items: itemsSel, procesadoPor: usuarioActual.nombre });
+    const itemsSel = Object.entries(cart)
+      .map(([key, qty]) => { const it = agregados.find((a) => a.key === key); return it ? { key, name: it.name, price: it.price, qty } : null; })
+      .filter(Boolean);
+    if (itemsSel.length === 0) return;
+    const montoReal = itemsSel.reduce((s, it) => s + it.price * it.qty, 0);
+    guardarPago({ id: uid(), ts: Date.now(), metodoPago: metodoSel, monto: montoReal, tipo: "por_producto", etiqueta: etiqueta.trim() || `Persona ${numPersonaSugerido}`, items: itemsSel, procesadoPor: usuarioActual.nombre });
   };
   const cobrarResto = () => {
     if (!metodoSel || restante <= 0) return;
@@ -1742,7 +2414,7 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
     <div style={styles.mesaCuentaCard}>
       <button style={styles.mesaCuentaHead} onClick={onToggle}>
         <div style={styles.mesaCuentaLeft}>
-          <span style={styles.mesaCuentaNum}>Mesa {cuenta.mesa}</span>
+          <span style={styles.mesaCuentaNum}>{mesaNombre(mesas, cuenta.mesa)}</span>
           <span style={styles.mesaCuentaSince}>Abierta desde {dateTimeLabel(cuenta.ts)}{cuenta.mesero ? ` · ${cuenta.mesero}` : ""}</span>
           {enCurso && <span style={styles.enCursoTag}>Cobro en curso · {money(cobrado)} de {money(total)}</span>}
         </div>
@@ -1775,7 +2447,7 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
               <div style={styles.lockedNote}><Lock size={11} /> Solo un administrador puede aplicar descuentos o cortesías.</div>
             ) : mostrarDescuento ? (
               <div style={styles.descuentoBox}>
-                <input style={styles.editInput} type="number" placeholder="Monto del descuento" value={descMonto} onChange={(e) => setDescMonto(e.target.value)} />
+                <CampoMonto placeholder="Monto del descuento" value={descMonto} onChange={setDescMonto} />
                 <input style={{ ...styles.editInput, marginTop: 6 }} placeholder="Motivo (ej: cortesía, cliente frecuente)" value={descMotivo} onChange={(e) => setDescMotivo(e.target.value)} />
                 <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                   <button style={styles.cancelEditBtn} onClick={() => setMostrarDescuento(false)}>Cancelar</button>
@@ -1788,7 +2460,13 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
           ) : null}
 
           {cuenta.propina ? (
-            <div style={styles.subtotalRow}><span>Propina {cuenta.propina.pct != null ? `(${cuenta.propina.pct}%)` : ""}</span><span>{money(cuenta.propina.monto)}</span></div>
+            <div style={styles.subtotalRow}>
+              <span>
+                Propina {cuenta.propina.pct != null ? `(${cuenta.propina.pct}%)` : ""}
+                {pagos.length === 0 && <button style={styles.inlineLink} onClick={quitarPropina}>cambiar</button>}
+              </span>
+              <span>{money(cuenta.propina.monto)}</span>
+            </div>
           ) : pagos.length === 0 && !mostrarDescuento ? (
             <div style={styles.propinaBox}>
               <span style={styles.closeConfirmText}>Propina:</span>
@@ -1796,13 +2474,28 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
                 {PROPINA_OPCIONES.map((p) => (
                   <button key={p} style={styles.propinaPill} onClick={() => setPropina(p)}>{p}%</button>
                 ))}
-                <input style={styles.propinaCustomInput} type="number" placeholder="$" value={propinaCustom} onChange={(e) => setPropinaCustom(e.target.value)} />
+                <CampoMonto style={styles.propinaCustomInput} placeholder="$" value={propinaCustom} onChange={setPropinaCustom} />
                 <button style={styles.propinaCustomBtn} onClick={() => setPropina("custom")} disabled={!propinaCustom}>Ok</button>
               </div>
             </div>
           ) : null}
 
           <div style={{ ...styles.subtotalRow, ...styles.subtotalRowFinal }}><span>Total a cobrar</span><span>{money(total)}</span></div>
+
+          {total === 0 && pagos.length === 0 && (
+            <div style={styles.cerrarVaciaBox}>
+              <span style={styles.closeConfirmText}>Esta mesa no tiene nada que cobrar (sin pedidos, o se le quitó todo).</span>
+              {confirmCancelarCuenta ? (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={styles.confirmText}>¿Cerrar la mesa sin cobro?</span>
+                  <button style={styles.confirmYes} onClick={cancelarCuenta}>Sí</button>
+                  <button style={styles.confirmNo} onClick={() => setConfirmCancelarCuenta(false)}>No</button>
+                </div>
+              ) : (
+                <button style={styles.inlineAddLink} onClick={() => setConfirmCancelarCuenta(true)}><Ban size={12} /> Cerrar mesa (sin consumo)</button>
+              )}
+            </div>
+          )}
 
           {pagos.length > 0 && (
             <div style={styles.pagosRegistradosBox}>
@@ -1842,7 +2535,8 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
               ) : effectiveModo === "unico" ? (
                 <>
                   <div style={styles.closeConfirmText}>Cobrar {money(total)}. Elige el método de pago:</div>
-                  <MetodoPills selected={metodoSel} onSelect={setMetodoSel} />
+                  <MetodoPills selected={metodoSel} onSelect={seleccionarMetodo} />
+                  {renderVueltos(total)}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button style={styles.cancelEditBtn} onClick={() => setModoLocal(null)}>Volver</button>
                     <button style={{ ...styles.sendBtn, flex: 1, opacity: metodoSel ? 1 : 0.4 }} disabled={!metodoSel} onClick={confirmarUnico}><Lock size={15} /> Confirmar cobro</button>
@@ -1864,7 +2558,8 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
                     <div style={styles.closeConfirmText}>Dividido en {numPartes} partes de {money(parteMonto)} cada una.</div>
                   )}
                   <div style={styles.closeConfirmText}>Parte {parteActual} de {numPartes} — {money(montoParteActual)}. Método de pago:</div>
-                  <MetodoPills selected={metodoSel} onSelect={setMetodoSel} />
+                  <MetodoPills selected={metodoSel} onSelect={seleccionarMetodo} />
+                  {renderVueltos(montoParteActual)}
                   <div style={{ display: "flex", gap: 8 }}>
                     {partesRegistradas === 0 && <button style={styles.cancelEditBtn} onClick={() => setModoLocal(null)}>Volver</button>}
                     <button style={{ ...styles.sendBtn, flex: 1, opacity: metodoSel ? 1 : 0.4 }} disabled={!metodoSel} onClick={confirmarParte}><Check size={15} /> Registrar parte {parteActual}</button>
@@ -1885,7 +2580,8 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
                   ))}
                   <input style={styles.editInput} placeholder={`Nombre de la persona (opcional, ej. "Persona ${numPersonaSugerido}")`} value={etiqueta} onChange={(e) => setEtiqueta(e.target.value)} />
                   <div style={styles.closeConfirmText}>Subtotal de esta persona: <b>{money(cartMonto)}</b></div>
-                  <MetodoPills selected={metodoSel} onSelect={setMetodoSel} />
+                  <MetodoPills selected={metodoSel} onSelect={seleccionarMetodo} />
+                  {renderVueltos(cartMonto)}
                   <div style={{ display: "flex", gap: 8 }}>
                     {pagos.length === 0 && <button style={styles.cancelEditBtn} onClick={() => setModoLocal(null)}>Volver</button>}
                     <button style={{ ...styles.sendBtn, flex: 1, opacity: metodoSel && cartMonto > 0 ? 1 : 0.4 }} disabled={!metodoSel || cartMonto === 0} onClick={confirmarProducto}><Check size={15} /> Registrar pago — {money(cartMonto)}</button>
@@ -1897,6 +2593,33 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
               )}
             </div>
           )}
+
+          {esAdmin && total > 0 && (
+            <div style={styles.cancelarCuentaBox}>
+              {confirmCancelarCuenta ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={styles.closeConfirmText}>
+                    Vas a cancelar {money(total)} de esta mesa <b>sin registrar ningún cobro</b>. Esto queda guardado con tu nombre en el historial. Escribe el motivo (obligatorio):
+                  </span>
+                  <input
+                    autoFocus style={styles.editInput} placeholder="Ej: cliente se fue sin pagar, error al abrir la mesa…"
+                    value={motivoCancelacion} onChange={(e) => setMotivoCancelacion(e.target.value)}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button style={styles.cancelEditBtn} onClick={() => { setConfirmCancelarCuenta(false); setMotivoCancelacion(""); }}>Volver</button>
+                    <button
+                      style={{ ...styles.sendBtn, flex: 1, background: "#C1442D", opacity: motivoCancelacion.trim() ? 1 : 0.4 }}
+                      disabled={!motivoCancelacion.trim()} onClick={cancelarCuenta}
+                    >
+                      <Ban size={14} /> Confirmar cancelación
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button style={{ ...styles.inlineLink, color: "#C1442D" }} onClick={() => setConfirmCancelarCuenta(true)}>Cancelar esta cuenta sin cobrar</button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1905,18 +2628,80 @@ function MesaCuentaCard({ cuenta, cuentasAll, orders, persistCuentas, turnoAbier
 
 /* ---------------- Historial ---------------- */
 
-function HistorialView({ cuentas, orders, config }) {
+function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCompleto, cargandoHistorial, cargarHistorialCompleto, config, mesas, usuarioActual }) {
   const [view, setView] = useState("years");
   const [year, setYear] = useState(null);
   const [month, setMonth] = useState(null);
   const [day, setDay] = useState(null);
   const [expandedCuentaId, setExpandedCuentaId] = useState(null);
+  const [verCanceladas, setVerCanceladas] = useState(false);
+  const [verTodasCanceladas, setVerTodasCanceladas] = useState(false);
+  const esAdmin = tieneRol(usuarioActual, "admin");
+  const cuentas = cuentasParaHistorial;
+  const orders = ordersParaHistorial;
+
+  // Apenas se entra a Historial, se pide el historial completo (una sola vez,
+  // no en vivo) — antes de eso solo se ve lo de los últimos días.
+  useEffect(() => { cargarHistorialCompleto(); }, [cargarHistorialCompleto]);
 
   const { days, months, years } = buildHistory(cuentas, orders);
+  const CANCELADAS_RECIENTES_DIAS = 30;
+  const cortoCanceladasRecientes = Date.now() - CANCELADAS_RECIENTES_DIAS * 24 * 60 * 60 * 1000;
+  const todasCanceladas = cuentas
+    .filter((c) => c.estado === "cancelada" && (c.montoCancelado || 0) > 0)
+    .sort((a, b) => b.canceladaTs - a.canceladaTs);
+  const canceladasRecientes = todasCanceladas.filter((c) => c.canceladaTs >= cortoCanceladasRecientes);
+  const canceladasAntiguas = todasCanceladas.filter((c) => c.canceladaTs < cortoCanceladasRecientes);
+  const canceladas = verTodasCanceladas ? todasCanceladas : canceladasRecientes;
+
+  const AvisoCargando = !historialCompleto && (
+    <div style={styles.cargandoHistBox}>
+      <span>{cargandoHistorial ? "Cargando historial completo…" : "Mostrando solo los últimos días — cargando el resto…"}</span>
+    </div>
+  );
+
+  const PanelCanceladas = esAdmin && todasCanceladas.length > 0 && (
+    <div style={styles.canceladasBox}>
+      <button style={styles.canceladasToggle} onClick={() => setVerCanceladas((v) => !v)}>
+        <Ban size={13} color="#C1442D" />
+        <span>
+          {canceladas.length} {canceladas.length === 1 ? "cuenta cancelada" : "cuentas canceladas"} sin cobrar
+          {!verTodasCanceladas ? ` (últimos ${CANCELADAS_RECIENTES_DIAS} días)` : ""} — {money(canceladas.reduce((s, c) => s + (c.montoCancelado || 0), 0))} en total
+        </span>
+        <span>{verCanceladas ? "▲" : "▼"}</span>
+      </button>
+      {verCanceladas && (
+        <div style={{ marginTop: 6 }}>
+          {canceladas.length === 0 && (
+            <div style={styles.canceladaMotivo}>Ninguna cancelación en los últimos {CANCELADAS_RECIENTES_DIAS} días.</div>
+          )}
+          {canceladas.map((c) => (
+            <div key={c.id} style={styles.canceladaRow}>
+              <div style={styles.rowBetween}>
+                <span style={styles.cierreDate}>{dateTimeLabel(c.canceladaTs)} · {mesaNombre(mesas, c.mesa)}{c.mesero ? ` · abrió ${c.mesero}` : ""}</span>
+                <span style={{ ...styles.cierreTotal, color: "#C1442D" }}>{money(c.montoCancelado)}</span>
+              </div>
+              <div style={styles.canceladaMotivo}>Canceló <b>{c.canceladaPor}</b>: "{c.motivoCancelacion}"</div>
+            </div>
+          ))}
+          {!verTodasCanceladas && canceladasAntiguas.length > 0 && (
+            <button style={styles.inlineAddLink} onClick={() => setVerTodasCanceladas(true)}>
+              Ver también {canceladasAntiguas.length} {canceladasAntiguas.length === 1 ? "cancelación anterior" : "cancelaciones anteriores"} →
+            </button>
+          )}
+          {verTodasCanceladas && canceladasAntiguas.length > 0 && (
+            <button style={styles.inlineAddLink} onClick={() => setVerTodasCanceladas(false)}>Ver solo las recientes</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   if (Object.keys(days).length === 0) {
     return (
       <div style={styles.menuScroll}>
+        {AvisoCargando}
+        {PanelCanceladas}
         <div style={styles.cajaEmptyText}>Todavía no hay cuentas cobradas. Cuando cobres una mesa, va a aparecer aquí organizada por día, con fecha y hora exactas.</div>
       </div>
     );
@@ -1926,10 +2711,25 @@ function HistorialView({ cuentas, orders, config }) {
     const list = Object.values(years).sort((a, b) => b.key - a.key);
     return (
       <div style={styles.menuScroll}>
+        {AvisoCargando}
+        {PanelCanceladas}
         <div style={styles.rowBetween}>
           <div style={styles.catLabel}>AÑOS</div>
-          <button style={styles.exportLink} onClick={() => exportarExcel(cuentas, orders, config)}><Download size={13} /> Exportar Excel</button>
+          {esAdmin && <button style={styles.exportLink} onClick={() => exportarExcel(cuentas, orders, config, mesas)}><Download size={13} /> Exportar Excel</button>}
         </div>
+        {list.length > 1 && (
+          <div style={styles.chartBox}>
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={[...list].sort((a, b) => a.key.localeCompare(b.key))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E4DFCE" />
+                <XAxis dataKey="key" tick={{ fontSize: 11, fill: "#8A8272" }} />
+                <YAxis tick={{ fontSize: 10, fill: "#8A8272" }} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
+                <Tooltip formatter={(v) => money(v)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Bar dataKey="total" fill="#5B7553" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
         {list.map((y) => (
           <button key={y.key} style={styles.histRow} onClick={() => { setYear(y.key); setView("months"); }}>
             <span style={styles.histRowTitle}>{y.key}</span>
@@ -1946,13 +2746,24 @@ function HistorialView({ cuentas, orders, config }) {
       <div style={styles.menuScroll}>
         <button style={styles.backBtn} onClick={() => setView("years")}>← Años</button>
         <div style={{ ...styles.catLabel, marginTop: 12 }}>{year}</div>
-        {list.map((m) => (
-          <button key={m.key} style={styles.histRow} onClick={() => { setMonth(m.key); setView("days"); }}>
-            <span style={styles.histRowTitle}>{monthLabel(m.ts)}</span>
-            <span style={styles.histRowSub}>{m.dayKeys.length} {m.dayKeys.length === 1 ? "día" : "días"} con ventas</span>
-            <span style={styles.histRowTotal}>{money(m.total)}</span>
-          </button>
-        ))}
+        {list.map((m) => {
+          const [añoMes, mesMes] = m.key.split("-");
+          const claveAñoAnterior = `${Number(añoMes) - 1}-${mesMes}`;
+          const mesAñoAnterior = months[claveAñoAnterior];
+          const delta = mesAñoAnterior && mesAñoAnterior.total > 0 ? Math.round(((m.total - mesAñoAnterior.total) / mesAñoAnterior.total) * 100) : null;
+          return (
+            <button key={m.key} style={styles.histRow} onClick={() => { setMonth(m.key); setView("days"); }}>
+              <span style={styles.histRowTitle}>{monthLabel(m.ts)}</span>
+              <span style={styles.histRowSub}>
+                {m.dayKeys.length} {m.dayKeys.length === 1 ? "día" : "días"} con ventas
+                {delta !== null && (
+                  <span style={{ color: delta >= 0 ? "#5B7553" : "#C1442D", fontWeight: 700 }}> · {delta >= 0 ? "+" : ""}{delta}% vs {claveAñoAnterior}</span>
+                )}
+              </span>
+              <span style={styles.histRowTotal}>{money(m.total)}</span>
+            </button>
+          );
+        })}
       </div>
     );
   }
@@ -1978,10 +2789,13 @@ function HistorialView({ cuentas, orders, config }) {
   const productos = Object.entries(d.productos).sort((a, b) => b[1].subtotal - a[1].subtotal);
   return (
     <div style={styles.menuScroll}>
-      <button style={styles.backBtn} onClick={() => setView("days")}>← Días</button>
-      <div style={{ marginTop: 12, marginBottom: 14 }}>
-        <div style={styles.pageEyebrow}>{dayLabel(d.ts)}</div>
-        <div style={{ ...styles.cajaTotalValue, color: "#242019" }}>{money(d.total)}</div>
+      <button className="no-imprimir" style={styles.backBtn} onClick={() => setView("days")}>← Días</button>
+      <div style={{ marginTop: 12, marginBottom: 14, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <div style={styles.pageEyebrow}>{dayLabel(d.ts)}</div>
+          <div style={{ ...styles.cajaTotalValue, color: "#242019" }}>{money(d.total)}</div>
+        </div>
+        <button className="no-imprimir" style={styles.exportLink} onClick={() => window.print()}>🖨️ Imprimir</button>
       </div>
 
       <div style={styles.metodoBreakdownRowLight}>
@@ -2005,7 +2819,7 @@ function HistorialView({ cuentas, orders, config }) {
             <button style={{ ...styles.cierreRow, width: "100%", background: "transparent", border: "none", cursor: dividida ? "pointer" : "default", textAlign: "left" }} onClick={() => dividida && setExpandedCuentaId(isExpanded ? null : c.id)}>
               <span style={styles.cierreDate}>
                 {meta && <meta.icon size={12} color={meta.color} style={{ marginRight: 5, verticalAlign: -2 }} />}
-                Mesa {c.mesa}{c.mesero ? ` · ${c.mesero}` : ""} · cobrada {timeLabel(c.pagadaTs)}
+                {mesaNombre(mesas, c.mesa)}{c.mesero ? ` · ${c.mesero}` : ""} · cobrada {timeLabel(c.pagadaTs)}
                 {dividida && <span style={styles.dividedTag}> · dividida en {c.pagos.length} pagos {isExpanded ? "▲" : "▼"}</span>}
               </span>
               <span style={styles.cierrePedidos}>{c.itemCount} ítems</span>
@@ -2043,8 +2857,9 @@ function HistorialView({ cuentas, orders, config }) {
 
 /* ---------------- Reportes ---------------- */
 
-function ReportesView({ cuentas, orders }) {
+function ReportesView({ cuentas, orders, menu, usuarioActual }) {
   const [rango, setRango] = useState("hoy");
+  const esAdmin = tieneRol(usuarioActual, "admin");
 
   const inicioRango = () => {
     const d = new Date();
@@ -2054,6 +2869,13 @@ function ReportesView({ cuentas, orders }) {
   };
   const desde = inicioRango();
   const pagadasRango = cuentas.filter((c) => c.estado === "pagada" && c.pagadaTs >= desde);
+  const costoPorId = Object.fromEntries(menu.map((m) => [m.id, m.cost || 0]));
+
+  // Tiempo promedio de cocina: de cuando se envió el pedido a cuando se marcó "listo".
+  const ordenesConTiempo = orders.filter((o) => o.ts >= desde && o.listoTs && o.estado !== "cancelado");
+  const tiempoPromedioMin = ordenesConTiempo.length > 0
+    ? Math.round(ordenesConTiempo.reduce((s, o) => s + (o.listoTs - o.ts), 0) / ordenesConTiempo.length / 60000)
+    : null;
 
   const porHora = {};
   pagadasRango.forEach((c) => { const h = new Date(c.pagadaTs).getHours(); porHora[h] = (porHora[h] || 0) + cuentaGranTotal(orders, c); });
@@ -2065,14 +2887,28 @@ function ReportesView({ cuentas, orders }) {
   });
 
   const productoMap = {};
+  let ventaProductos = 0, costoProductos = 0, huboCostosCargados = false;
   pagadasRango.forEach((c) => cuentaOrders(orders, c.id).filter((o) => o.estado !== "cancelado").forEach((o) => o.items.forEach((it) => {
     if (!productoMap[it.name]) productoMap[it.name] = { qty: 0, subtotal: 0 };
     productoMap[it.name].qty += it.qty; productoMap[it.name].subtotal += it.qty * it.price;
+    ventaProductos += it.qty * it.price;
+    // Los pedidos nuevos ya guardan su propio costo (congelado al momento de
+    // la venta). Los pedidos viejos, de antes de este cambio, no lo tienen —
+    // para esos usamos el costo actual del menú como mejor estimado posible.
+    const costoUnit = (it.cost !== undefined && it.cost !== null) ? it.cost : (costoPorId[it.id] || 0);
+    if (costoUnit > 0) huboCostosCargados = true;
+    costoProductos += it.qty * costoUnit;
   })));
   const topProductos = Object.entries(productoMap).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+  const margenRango = ventaProductos - costoProductos;
+  const margenPct = ventaProductos > 0 ? Math.round((margenRango / ventaProductos) * 100) : 0;
 
   const totalRango = pagadasRango.reduce((s, c) => s + cuentaGranTotal(orders, c), 0);
   const propinasRango = pagadasRango.reduce((s, c) => s + ((c.propina && c.propina.monto) || 0), 0);
+  const descuentosRango = pagadasRango.reduce((s, c) => s + ((c.descuento && c.descuento.monto) || 0), 0);
+  const cuentaBrutaRango = totalRango + descuentosRango - propinasRango;
+  const canceladasRango = cuentas.filter((c) => c.estado === "cancelada" && (c.montoCancelado || 0) > 0 && c.canceladaTs >= desde);
+  const totalCanceladoRango = canceladasRango.reduce((s, c) => s + (c.montoCancelado || 0), 0);
 
   const meseroMap = {};
   pagadasRango.forEach((c) => {
@@ -2083,20 +2919,86 @@ function ReportesView({ cuentas, orders }) {
     meseroMap[nombre].propinas += (c.propina && c.propina.monto) || 0;
   });
   const meserosOrdenados = Object.entries(meseroMap).sort((a, b) => b[1].total - a[1].total);
+  const [repartirPropinas, setRepartirPropinas] = useState(false);
+  const [numPersonasPropina, setNumPersonasPropina] = useState(2);
 
   return (
     <div style={styles.menuScroll}>
-      <div style={styles.cajaTabSwitch}>
+      <div className="no-imprimir" style={styles.cajaTabSwitch}>
         <button style={{ ...styles.cajaTabBtn, ...(rango === "hoy" ? styles.cajaTabBtnActive : {}) }} onClick={() => setRango("hoy")}>Hoy</button>
         <button style={{ ...styles.cajaTabBtn, ...(rango === "semana" ? styles.cajaTabBtnActive : {}) }} onClick={() => setRango("semana")}>7 días</button>
         <button style={{ ...styles.cajaTabBtn, ...(rango === "mes" ? styles.cajaTabBtnActive : {}) }} onClick={() => setRango("mes")}>30 días</button>
+        {esAdmin && <button style={styles.exportLink} onClick={() => window.print()}>🖨️ Imprimir</button>}
+      </div>
+
+      <div className="solo-imprimir" style={styles.reportePrintHeader}>
+        <div style={styles.reportePrintTitle}>Reporte financiero — {rango === "hoy" ? "Hoy" : rango === "semana" ? "Últimos 7 días" : "Últimos 30 días"}</div>
+        <div style={styles.reportePrintSub}>Generado el {dateTimeLabel(Date.now())}</div>
       </div>
 
       <div style={styles.cajaTotalCard}>
         <span style={styles.cajaTotalLabel}>Total vendido</span>
         <span style={styles.cajaTotalValue}>{money(totalRango)}</span>
         <span style={styles.turnoEsperadoLabel}>{pagadasRango.length} cuentas · {money(propinasRango)} en propinas</span>
+        {esAdmin && huboCostosCargados && (
+          <div style={styles.margenRow}>
+            <span>Margen estimado: <b>{money(margenRango)}</b> ({margenPct}%)</span>
+          </div>
+        )}
       </div>
+      {esAdmin && !huboCostosCargados && ventaProductos > 0 && (
+        <div style={styles.cajaEmptyText}>Agrégale costo a tus productos en Menú para ver aquí el margen de este período.</div>
+      )}
+
+      {esAdmin && (
+        <>
+          <div style={{ ...styles.catLabel, marginTop: 16 }}>RESUMEN FINANCIERO</div>
+          <div style={styles.turnoBox}>
+            <div style={styles.subtotalRow}><span>Consumo bruto (antes de descuentos)</span><span>{money(cuentaBrutaRango)}</span></div>
+            <div style={styles.subtotalRow}><span>Descuentos y cortesías aplicados</span><span style={{ color: "#C1442D" }}>−{money(descuentosRango)}</span></div>
+            <div style={styles.subtotalRow}><span>Propinas</span><span>+{money(propinasRango)}</span></div>
+            <div style={{ ...styles.subtotalRow, ...styles.subtotalRowFinal }}><span>Total cobrado</span><span>{money(totalRango)}</span></div>
+            {huboCostosCargados && (
+              <>
+                <div style={styles.subtotalRow}><span>Costo de productos vendidos</span><span>−{money(costoProductos)}</span></div>
+                <div style={{ ...styles.subtotalRow, ...styles.subtotalRowFinal }}><span>Margen (utilidad bruta)</span><span>{money(margenRango)} ({margenPct}%)</span></div>
+              </>
+            )}
+            <div style={styles.subtotalRow}>
+              <span style={{ color: canceladasRango.length > 0 ? "#C1442D" : undefined }}>Cuentas canceladas sin cobrar ({canceladasRango.length})</span>
+              <span style={{ color: canceladasRango.length > 0 ? "#C1442D" : undefined }}>{money(totalCanceladoRango)}</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div style={styles.catLabel}>PROPINAS DEL PERÍODO</div>
+      <div style={styles.turnoBox}>
+        <div style={styles.closeConfirmText}>{money(propinasRango)} en propinas en este rango.</div>
+        {!repartirPropinas ? (
+          <button style={styles.inlineAddLink} onClick={() => setRepartirPropinas(true)}>Repartir entre el equipo →</button>
+        ) : (
+          <>
+            <div style={styles.partesStepperRow}>
+              <span style={styles.closeConfirmText}>Dividir entre:</span>
+              <div style={styles.stepper}>
+                <button style={styles.stepBtn} onClick={() => setNumPersonasPropina((n) => Math.max(1, n - 1))}><Minus size={14} /></button>
+                <span style={styles.stepVal}>{numPersonasPropina}</span>
+                <button style={{ ...styles.stepBtn, ...styles.stepBtnPlus }} onClick={() => setNumPersonasPropina((n) => Math.min(20, n + 1))}><Plus size={14} /></button>
+              </div>
+              <span style={styles.closeConfirmText}>personas</span>
+            </div>
+            <div style={styles.diferenciaBox}>Cada uno: <b>{money(propinasRango / numPersonasPropina)}</b></div>
+          </>
+        )}
+      </div>
+
+      {tiempoPromedioMin !== null && (
+        <div style={styles.tiempoCocinaBox}>
+          <Clock size={14} color="#B98A2E" />
+          <span>Tiempo promedio de cocina: <b>{tiempoPromedioMin} min</b> ({ordenesConTiempo.length} pedidos)</span>
+        </div>
+      )}
 
       <div style={styles.catLabel}>VENTAS POR HORA</div>
       <div style={styles.chartBox}>
@@ -2150,8 +3052,8 @@ const fontImports = `
 `;
 
 const styles = {
-  app: { fontFamily: "'Inter', sans-serif", minHeight: "100vh", background: "#F7F4EC", display: "flex", flexDirection: "column" },
-  loadingScreen: { minHeight: "100vh", background: "#1E2124", display: "flex", alignItems: "center", justifyContent: "center" },
+  app: { fontFamily: "'Inter', sans-serif", height: "100dvh", minHeight: "100vh", background: "#F7F4EC", display: "flex", flexDirection: "column", overflow: "hidden", width: "100%" },
+  loadingScreen: { height: "100dvh", minHeight: "100vh", background: "#1E2124", display: "flex", alignItems: "center", justifyContent: "center" },
   loadingStamp: { fontFamily: "'IBM Plex Mono', monospace", color: "#8A9B87", letterSpacing: 2, fontSize: 13 },
   topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#242019", flexShrink: 0, gap: 8, flexWrap: "wrap" },
   brand: { display: "flex", alignItems: "center", gap: 8 },
@@ -2170,211 +3072,255 @@ const styles = {
   screenFlash: { background: "#2b1f1c" },
 
   loginWrap: { padding: 24, display: "flex", flexDirection: "column", gap: 10, maxWidth: 420, margin: "0 auto", width: "100%" },
-  loginList: { display: "flex", flexDirection: "column", gap: 8, margin: "14px 0" },
-  loginBtn: { display: "flex", alignItems: "center", gap: 10, background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 10, padding: "13px 14px", fontSize: 14, fontWeight: 600, color: "#242019", cursor: "pointer" },
-  pinError: { color: "#C1442D", fontSize: 12, fontWeight: 600, marginTop: 6 },
+  loginList: { display: "flex", flexDirection: "column", gap: 8 },
+  loginBtn: { display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#242019", cursor: "pointer" },
+  loginNewRow: { display: "flex", gap: 8, marginTop: 6 },
 
-  mesaGridHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "22px 20px 10px" },
-  pageEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#8A8272", letterSpacing: 1.5 },
-  pageTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 26, color: "#242019", fontWeight: 600 },
-  editMenuBtn: { display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "1px solid #D9D2BE", color: "#5C5644", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
-  mesaGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, padding: 20 },
-  mesaCard: { aspectRatio: "1", border: "1.5px solid #E4DFCE", borderRadius: 16, background: "#FFFEFA", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", padding: 8 },
-  mesaCardNum: { fontFamily: "'Oswald', sans-serif", fontSize: 44, color: "#242019", fontWeight: 600 },
-  mesaCardTag: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: 500 },
-  mesaCardSince: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: "#9A9382" },
+  pageEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: "#B98A2E", fontWeight: 600, textTransform: "uppercase" },
+  pageTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#242019", marginTop: 2, marginBottom: 4 },
+  cajaEmptyText: { fontSize: 13, color: "#8A8272", lineHeight: 1.5, padding: "8px 0" },
+  editInput: { width: "100%", padding: "11px 12px", borderRadius: 9, border: "1px solid #E4DFCE", fontSize: 14, fontFamily: "'Inter', sans-serif", color: "#242019", background: "#FFFDF8", boxSizing: "border-box" },
+  addItemBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", background: "#242019", color: "#F7F4EC", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer", width: "100%" },
+  backBtn: { alignSelf: "flex-start", background: "transparent", border: "none", color: "#8A8272", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "6px 0" },
+  pinError: { fontSize: 12.5, color: "#C1442D", fontWeight: 600 },
 
-  subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px 10px" },
-  backBtn: { background: "none", border: "none", color: "#8A8272", fontSize: 13, fontWeight: 600, cursor: "pointer" },
-  mesaTitleWrap: { display: "flex", flexDirection: "column", alignItems: "center" },
-  mesaEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#8A8272", letterSpacing: 1.5 },
-  mesaTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 20, color: "#242019", fontWeight: 600 },
-  cuentaOpenSub: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#5B7553", fontWeight: 600, marginTop: 2 },
-  mesaActionBtn: { width: 34, height: 34, borderRadius: 9, border: "1.5px solid #B98A2E", background: "#FBEFD9", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#8A611A" },
-  mesaActionPanel: { margin: "0 18px 12px", background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 8 },
+  subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #E4DFCE", flexShrink: 0, gap: 8 },
+  mesaTitleWrap: { display: "flex", flexDirection: "column", alignItems: "center", flex: 1 },
+  mesaEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1.5, color: "#B3A891", fontWeight: 600 },
+  mesaTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#242019" },
+  cuentaOpenSub: { fontSize: 11, color: "#5B7553", fontWeight: 600, marginTop: 2 },
+  mesaActionBtn: { width: 34, height: 34, borderRadius: 9, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#242019", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  mesaActionPanel: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 8, background: "#F1ECDD", borderBottom: "1px solid #E4DFCE" },
+  modoChoiceBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 10px", background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 9, fontSize: 13, fontWeight: 600, color: "#242019", cursor: "pointer" },
+  closeConfirmText: { fontSize: 12.5, color: "#5C5648", lineHeight: 1.5 },
   mesaPickerRow: { display: "flex", flexWrap: "wrap", gap: 8 },
-  mesaPickerBtn: { background: "#242019", color: "#F7F4EC", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  mesaPickerBtn: { padding: "9px 14px", background: "#242019", color: "#F7F4EC", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  cancelEditBtn: { padding: "11px 14px", background: "transparent", color: "#8A8272", border: "1px solid #E4DFCE", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
 
-  ticketStripCol: { display: "flex", flexDirection: "column", gap: 6, padding: "0 18px 10px" },
+  ticketStripCol: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6, background: "#F1ECDD", borderBottom: "1px solid #E4DFCE" },
   miniTicketRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  miniTicket: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, background: "#EFE9D9", color: "#5C5644", padding: "5px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  miniTicketTime: { color: "#9A9382" },
-  miniTicketTotal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: "#5C5644", textAlign: "right", padding: "2px 4px 0" },
-  entregadoBtn: { display: "flex", alignItems: "center", gap: 4, alignSelf: "flex-end", background: "#E4EEE1", color: "#3F5638", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" },
-  avisosListosWrap: { display: "flex", flexDirection: "column", gap: 6, padding: "0 20px 10px" },
-  avisoListoBanner: { display: "flex", alignItems: "center", gap: 8, background: "#2F6690", color: "#F7F4EC", border: "none", borderRadius: 10, padding: "11px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "left" },
-  avisoListoClose: { marginLeft: "auto", opacity: 0.8, fontSize: 13, padding: "0 4px" },
-  stateDot: { width: 7, height: 7, borderRadius: "50%", display: "inline-block", flexShrink: 0 },
-  editedTag: { fontSize: 9.5, fontWeight: 700, color: "#B98A2E", marginLeft: 2 },
+  miniTicket: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5C5648", flex: 1, flexWrap: "wrap" },
+  stateDot: { width: 7, height: 7, borderRadius: "50%", display: "inline-block" },
+  miniTicketTime: { marginLeft: "auto", color: "#B3A891", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5 },
+  editedTag: { fontSize: 9.5, fontWeight: 700, color: "#8A611A", background: "#FBEFD9", padding: "1px 6px", borderRadius: 8, textTransform: "uppercase" },
   miniTicketActions: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
-  iconBtn: { width: 34, height: 34, borderRadius: 9, border: "1px solid #E4DFCE", background: "#FFFEFA", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#5C5644" },
-  confirmText: { fontSize: 11, color: "#5C5644", fontWeight: 600 },
-  confirmYes: { background: "#C1442D", color: "#F7F4EC", border: "none", borderRadius: 6, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" },
-  confirmNo: { background: "#EDE7D8", color: "#5C5644", border: "none", borderRadius: 6, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" },
-  editingBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBEFD9", color: "#8A611A", fontSize: 12, fontWeight: 600, padding: "9px 18px", margin: "0 18px 10px", borderRadius: 8 },
-  sentBanner: { display: "flex", alignItems: "center", gap: 8, background: "#E4EEE1", color: "#3F5638", fontSize: 12.5, fontWeight: 700, padding: "10px 18px", margin: "0 18px 10px", borderRadius: 8 },
-  warnBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBE2DC", color: "#8A2E1A", fontSize: 12, fontWeight: 600, padding: "9px 14px", margin: "0 0 12px", borderRadius: 8 },
-  repeatBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "#FFFEFA", border: "1px dashed #C7BE9F", color: "#8A611A", borderRadius: 10, padding: "11px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", margin: "0 18px 12px" },
-  cancelEditBtn: { background: "#EDE7D8", color: "#5C5644", border: "none", borderRadius: 10, padding: "13px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  marcarServidoBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", background: "#2F6690", color: "#F7F4EC", border: "none", borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: "pointer" },
+  confirmText: { fontSize: 11.5, color: "#5C5648", marginRight: 2 },
+  confirmYes: { padding: "5px 10px", background: "#5B7553", color: "#F7F4EC", border: "none", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  confirmNo: { padding: "5px 10px", background: "transparent", color: "#8A8272", border: "1px solid #E4DFCE", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  iconBtn: { width: 26, height: 26, borderRadius: 7, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#5C5648", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  miniTicketTotal: { fontSize: 12, color: "#5C5648", paddingTop: 2 },
+  editingBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#FBEFD9", color: "#8A611A", fontSize: 12, fontWeight: 600 },
+  sentBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#E4EEE1", color: "#5B7553", fontSize: 12, fontWeight: 600 },
+  repeatBtn: { margin: "10px 16px 0", padding: "10px", background: "#FFFDF8", border: "1px dashed #C7BFA0", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#8A611A", cursor: "pointer" },
 
-  catPillsWrap: { padding: "0 18px 8px", flexShrink: 0 },
-  searchInput: { width: "100%", border: "1px solid #E4DFCE", borderRadius: 10, padding: "10px 12px", fontSize: 13.5, fontFamily: "'Inter', sans-serif", background: "#FFFEFA", marginBottom: 8, boxSizing: "border-box" },
-  catPills: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, WebkitOverflowScrolling: "touch", scrollbarWidth: "none" },
-  catPill: { flexShrink: 0, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, letterSpacing: 0.2, color: "#5C5644", background: "#FFFEFA", border: "1px solid #E4DFCE", padding: "8px 13px", borderRadius: 18, whiteSpace: "nowrap", cursor: "pointer" },
+  catPillsWrap: { padding: "10px 16px 6px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 },
+  searchInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #E4DFCE", fontSize: 13.5, background: "#FFFDF8", color: "#242019" },
+  catPills: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 },
+  catPill: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 20, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#5C5648", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", flexShrink: 0 },
   catPillActive: { background: "#242019", color: "#F7F4EC", border: "1px solid #242019" },
-  catPillBadge: { background: "#C1442D", color: "#F7F4EC", fontSize: 10, fontWeight: 700, borderRadius: 10, padding: "1px 6px", minWidth: 16, textAlign: "center" },
-  menuItemCat: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#B98A2E", marginTop: 1 },
-  noResults: { textAlign: "center", color: "#9A9382", fontSize: 13, fontStyle: "italic", padding: "30px 0" },
-  menuScroll: { flex: 1, overflowY: "auto", padding: "6px 18px 100px" },
-  catLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#B98A2E", letterSpacing: 1.5, marginBottom: 6, marginTop: 4 },
-  rowBetween: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  menuRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #EBE5D3" },
-  menuItemName: { fontSize: 14.5, color: "#242019", fontWeight: 500 },
-  menuItemPrice: { fontSize: 12.5, color: "#9A9382", fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 },
-  agotadoTag: { fontSize: 9, fontWeight: 700, color: "#C1442D", marginLeft: 4 },
-  itemNoteBtn: { display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "#B98A2E", fontSize: 10.5, padding: "3px 0 0", cursor: "pointer" },
-  itemNoteInput: { border: "1px solid #E4DFCE", borderRadius: 6, padding: "5px 8px", fontSize: 11, marginTop: 4, width: "90%" },
-  stepper: { display: "flex", alignItems: "center", gap: 10 },
-  stepBtn: { width: 38, height: 38, borderRadius: 9, border: "1px solid #E4DFCE", background: "#FFFEFA", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#5C5644" },
-  stepBtnPlus: { background: "#242019", color: "#F7F4EC", border: "none" },
-  stepVal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, width: 18, textAlign: "center", fontWeight: 600 },
+  catPillBadge: { background: "#C1442D", color: "#F7F4EC", fontSize: 10, fontWeight: 700, borderRadius: 8, padding: "1px 6px" },
 
-  orderBar: { position: "sticky", bottom: 0, background: "#F7F4EC", borderTop: "1px solid #E4DFCE", padding: 14, display: "flex", flexDirection: "column", gap: 10 },
-  noteInput: { border: "1px solid #E4DFCE", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "'Inter', sans-serif", background: "#FFFEFA" },
-  sendBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#C1442D", color: "#F7F4EC", border: "none", borderRadius: 10, padding: "13px", fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  menuScroll: { flex: 1, overflowY: "auto", padding: "8px 16px 16px" },
+  menuRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 0", borderBottom: "1px solid #EDE7D8" },
+  menuItemName: { fontSize: 14, fontWeight: 600, color: "#242019" },
+  agotadoTag: { fontSize: 9.5, fontWeight: 700, color: "#C1442D", background: "#FBE2DC", padding: "1px 6px", borderRadius: 8, marginLeft: 4 },
+  menuItemCat: { fontSize: 11, color: "#B3A891", marginTop: 1 },
+  menuItemPrice: { fontSize: 12.5, color: "#8A8272", marginTop: 2 },
+  itemNoteInput: { marginTop: 4, padding: "6px 8px", fontSize: 11.5, borderRadius: 7, border: "1px solid #E4DFCE", width: "90%" },
+  itemNoteBtn: { display: "flex", alignItems: "center", gap: 4, marginTop: 4, background: "transparent", border: "none", color: "#B98A2E", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: 0 },
+  stepper: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
+  stepBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#242019", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  stepBtnPlus: { background: "#242019", color: "#F7F4EC", border: "1px solid #242019" },
+  stepVal: { fontSize: 14, fontWeight: 700, color: "#242019", minWidth: 16, textAlign: "center" },
+  noResults: { textAlign: "center", color: "#B3A891", fontSize: 13, padding: "20px 0" },
 
-  addItemCard: { background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 },
-  editInput: { border: "1px solid #E4DFCE", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "'Inter', sans-serif", width: "100%", boxSizing: "border-box" },
-  addItemBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "#242019", color: "#F7F4EC", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 600, cursor: "pointer" },
-  editRow: { display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid #EBE5D3" },
-  deleteBtn: { marginLeft: "auto", background: "none", border: "none", color: "#C1442D", cursor: "pointer", padding: 4 },
-  agotadoToggle: { width: 26, height: 26, borderRadius: 7, border: "1px solid #E4DFCE", background: "#FFFEFA", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#9A9382", flexShrink: 0 },
-  agotadoToggleActive: { background: "#C1442D", color: "#F7F4EC", border: "none" },
+  orderBar: { display: "flex", flexDirection: "column", gap: 8, padding: "10px 16px 14px", borderTop: "1px solid #E4DFCE", flexShrink: 0, background: "#F7F4EC" },
+  noteInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #E4DFCE", fontSize: 13, background: "#FFFDF8" },
+  sendBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 14px", background: "#C1442D", color: "#F7F4EC", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" },
 
-  kdsHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 20px 14px" },
-  kdsEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#5C6670", letterSpacing: 1.5 },
-  kdsTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, color: "#F7F4EC", fontWeight: 600, marginTop: 2 },
-  kdsCount: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 20, color: "#F7F4EC", background: "#33393F", borderRadius: 10, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center" },
+  mesaGridHeader: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "16px 16px 8px" },
+  vistaMesasSwitch: { display: "flex", gap: 6, padding: "0 16px 10px" },
+  vistaMesasBtn: { padding: "6px 12px", borderRadius: 20, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#8A8272", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
+  vistaMesasBtnActive: { background: "#242019", color: "#F7F4EC", border: "1px solid #242019" },
+  planoContainer: { position: "relative", width: "100%", paddingTop: "70%", background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 14 },
+  planoMesaTile: { position: "absolute", transform: "translate(-50%, -50%)", width: 74, height: 74, borderRadius: 14, border: "2px solid", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, textAlign: "center", padding: 4, lineHeight: 1.2, boxShadow: "0 2px 6px rgba(0,0,0,0.08)", userSelect: "none", WebkitUserSelect: "none" },
+  planoVacio: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#B3A891", fontSize: 12.5 },
+  editMenuBtn: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#242019", cursor: "pointer" },
+  mesaGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "8px 16px 16px", overflowY: "auto" },
+  mesaCard: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "18px 16px", background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 14, cursor: "pointer", minHeight: 100 },
+  mesaCardNum: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#242019", lineHeight: 1.15, wordBreak: "break-word" },
+  mesaReorderBtn: { width: 22, height: 20, fontSize: 9, lineHeight: 1, border: "1px solid #E4DFCE", borderRadius: 5, background: "#FFFDF8", color: "#8A8272", cursor: "pointer" },
+  mesaCardTag: { fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8, textTransform: "uppercase", letterSpacing: 0.4 },
+  mesaCardSince: { fontSize: 10.5, color: "#B3A891" },
+
+  addItemCard: { display: "flex", flexDirection: "column", gap: 8, padding: 14, background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 12, marginBottom: 16 },
+  catLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.2, color: "#B3A891", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" },
+  editRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #EDE7D8" },
+  menuEditItemBlock: { borderBottom: "1px solid #EDE7D8" },
+  costoPillBtn: { display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: "#B98A2E", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: "0 0 8px 32px" },
+  precioEditableBtn: { display: "flex", alignItems: "center", gap: 3, background: "#F1ECDD", border: "none", borderRadius: 7, padding: "3px 8px", fontSize: 12.5, fontWeight: 700, color: "#242019", cursor: "pointer" },
+  costoEditRow: { display: "flex", alignItems: "center", gap: 6, padding: "0 0 10px 32px" },
+  agotadoToggle: { width: 26, height: 26, borderRadius: 7, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#B3A891", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
+  agotadoToggleActive: { background: "#FBE2DC", color: "#C1442D", border: "1px solid #C1442D" },
+  deleteBtn: { width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: "#C1442D", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
+
+  kdsHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 },
+  kdsEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.5, color: "#8A9B87", fontWeight: 600 },
+  kdsTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#F7F4EC", marginTop: 2 },
+  kdsCount: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#C1442D" },
   emptyKitchen: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 },
-  emptyKitchenText: { fontFamily: "'IBM Plex Mono', monospace", color: "#5C6670", fontSize: 12.5 },
-  rail: { flex: 1, overflowY: "auto", padding: "0 16px 30px", display: "flex", flexDirection: "column", gap: 14 },
-  ticket: { background: "#F7F4EC", borderRadius: 4, padding: "16px 16px 14px", boxShadow: "0 4px 14px rgba(0,0,0,0.35)", borderLeft: "4px solid #C1442D" },
-  ticketHead: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  ticketMesa: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#242019", display: "flex", alignItems: "center", gap: 8, letterSpacing: 0.5 },
-  ticketExactTime: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#9A9382", marginTop: 2 },
-  editedBadge: { fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, color: "#F7F4EC", background: "#B98A2E", padding: "2px 6px", borderRadius: 4, letterSpacing: 0.5 },
-  ticketTime: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: "#8A8272" },
-  ticketDivider: { borderTop: "1.5px dashed #D9D2BE", margin: "10px 0" },
-  ticketLine: { display: "flex", gap: 8, padding: "3px 0", fontFamily: "'IBM Plex Mono', monospace" },
-  ticketQty: { color: "#C1442D", fontWeight: 600, fontSize: 13 },
-  ticketItemName: { fontSize: 13, color: "#242019" },
-  ticketItemNote: { fontSize: 11, color: "#B98A2E", fontStyle: "italic", paddingLeft: 20, marginBottom: 2 },
-  ticketNote: { fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontSize: 12.5, color: "#8A8272", marginTop: 8 },
-  ticketBtn: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", borderRadius: 10, padding: "16px", fontSize: 15, fontWeight: 700, color: "#F7F4EC", cursor: "pointer", minHeight: 52 },
+  emptyKitchenText: { color: "#5C6670", fontSize: 13, fontWeight: 600 },
+  rail: { flex: 1, overflowX: "auto", display: "flex", gap: 12, padding: "0 20px 20px", alignItems: "flex-start" },
+  ticket: { background: "#282C30", borderRadius: 12, borderLeft: "4px solid #C1442D", padding: 14, minWidth: 240, maxWidth: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 },
+  ticketHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  ticketMesa: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#F7F4EC", display: "flex", alignItems: "center", gap: 6 },
+  editedBadge: { fontSize: 9, fontWeight: 700, color: "#242019", background: "#B98A2E", padding: "1px 6px", borderRadius: 6 },
+  ticketTime: { fontSize: 12, display: "flex", alignItems: "center" },
+  ticketExactTime: { fontSize: 10.5, color: "#7A8087" },
+  ticketDivider: { height: 1, background: "#3A3F44", margin: "6px 0" },
+  ticketLine: { display: "flex", gap: 8, padding: "3px 0" },
+  ticketQty: { color: "#C1442D", fontWeight: 700, fontSize: 13, minWidth: 24 },
+  ticketItemName: { color: "#F7F4EC", fontSize: 13 },
+  ticketItemNote: { color: "#B98A2E", fontSize: 11.5, paddingLeft: 32, fontStyle: "italic" },
+  ticketNote: { color: "#D9CFAE", fontSize: 12, fontStyle: "italic", marginTop: 4 },
+  ticketBtn: { marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", border: "none", borderRadius: 8, color: "#F7F4EC", fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
+  ticketBackBtn: { marginTop: 6, width: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "#3A3F44", border: "none", borderRadius: 8, color: "#D9CFAE", fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  recienListosRow: { display: "flex", gap: 8, overflowX: "auto", padding: "0 20px 12px", flexShrink: 0 },
+  recienListoChip: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#2F6690", color: "#F7F4EC", border: "none", borderRadius: 20, fontSize: 11.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 },
 
-  cajaTabSwitch: { display: "flex", gap: 6, padding: "0 20px 12px" },
-  cajaTabBtn: { flex: 1, background: "#EFE9D9", border: "none", borderRadius: 9, padding: "9px", fontSize: 12, fontWeight: 600, color: "#8A8272", cursor: "pointer", fontFamily: "'Inter', sans-serif" },
-  cajaTabBtnActive: { background: "#242019", color: "#F7F4EC" },
+  cajaTabSwitch: { display: "flex", gap: 6, padding: "0 16px 12px", flexShrink: 0, overflowX: "auto" },
+  cajaTabBtn: { padding: "8px 13px", borderRadius: 20, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#8A8272", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" },
+  cajaTabBtnActive: { background: "#242019", color: "#F7F4EC", border: "1px solid #242019" },
+  cajaTotalCard: { padding: 16, background: "#242019", borderRadius: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 4 },
+  cajaTotalLabel: { fontSize: 11.5, color: "#B3A891", fontWeight: 600 },
+  cajaTotalValue: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#F7F4EC" },
+  cajaTotalValue2: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#242019", display: "flex", flexDirection: "column", gap: 2, margin: "8px 0" },
+  metodoBreakdownRow: { display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" },
+  metodoBreakdownItem: { display: "flex", alignItems: "center", gap: 5 },
+  metodoBreakdownLabel: { fontSize: 11, color: "#B3A891" },
+  metodoBreakdownValue: { fontSize: 12, color: "#F7F4EC", fontWeight: 700 },
+  warnBanner: { display: "flex", alignItems: "center", gap: 6, padding: "10px 12px", background: "#FBEFD9", color: "#8A611A", borderRadius: 10, fontSize: 12, fontWeight: 600, marginBottom: 12 },
+  errorGuardadoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#C1442D", color: "#F7F4EC", fontSize: 12.5, fontWeight: 600, flexShrink: 0 },
+  avisoListoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#5B7553", color: "#F7F4EC", fontSize: 12.5, fontWeight: 700, flexShrink: 0 },
+  avisoNotifBanner: { display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: "#242019", color: "#D9CFAE", fontSize: 11.5, flexShrink: 0 },
+  avisoNotifBtn: { padding: "6px 12px", background: "#B98A2E", color: "#242019", border: "none", borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
+  avisoNotifCerrar: { background: "transparent", border: "none", color: "#D9CFAE", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
+  errorGuardadoCerrar: { background: "transparent", border: "none", color: "#F7F4EC", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
+  goHistLink: { textAlign: "center", padding: "12px 0", color: "#B98A2E", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
 
-  cajaTotalCard: { background: "#242019", borderRadius: 14, padding: "20px 18px", display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 },
-  cajaTotalLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#B3A891", letterSpacing: 1 },
-  cajaTotalValue: { fontFamily: "'Oswald', sans-serif", fontSize: 34, color: "#F7F4EC", fontWeight: 600 },
-  cajaTotalValue2: { fontFamily: "'Oswald', sans-serif", fontSize: 30, color: "#242019", fontWeight: 600, display: "flex", flexDirection: "column", margin: "8px 0" },
-  turnoEsperadoLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#B3A891", fontWeight: 400, marginTop: 2 },
-  cajaEmptyText: { fontSize: 12.5, color: "#9A9382", fontStyle: "italic", padding: "4px 0 18px", lineHeight: 1.6 },
+  turnoBox: { display: "flex", flexDirection: "column", gap: 8, padding: 16, background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 14, marginBottom: 14 },
+  turnoEsperadoLabel: { fontSize: 11, fontWeight: 500, color: "#8A8272", textTransform: "none" },
+  margenRow: { fontSize: 11.5, color: "#8A9B87", marginTop: 4 },
+  tiempoCocinaBox: { display: "flex", alignItems: "center", gap: 6, background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#5C5648" },
+  reportePrintHeader: { marginBottom: 14 },
+  reportePrintTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#242019" },
+  reportePrintSub: { fontSize: 11, color: "#8A8272", marginTop: 2 },
+  closeCajaBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", background: "#C1442D", color: "#F7F4EC", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: "pointer" },
+  closeConfirmBox: { display: "flex", flexDirection: "column", gap: 8 },
+  diferenciaBox: { padding: "8px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, color: "#5C5648" },
+  vueltosBox: { display: "flex", flexDirection: "column", gap: 6 },
+  turnoRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #EDE7D8", gap: 8 },
+  turnoRowCol: { borderBottom: "1px solid #EDE7D8", padding: "8px 0" },
+  turnoSubRow: { fontSize: 11, color: "#8A8272", marginTop: 2 },
+  turnoObsRow: { fontSize: 11.5, color: "#8A611A", fontStyle: "italic", marginTop: 3 },
+  metodoResumenRow: { display: "flex", gap: 16, margin: "10px 0 2px", flexWrap: "wrap" },
+  metodoResumenItem: { display: "flex", alignItems: "center", gap: 5 },
+  metodoResumenLabel: { fontSize: 11.5, color: "#8A8272" },
+  metodoResumenValue: { fontSize: 12.5, color: "#242019", fontWeight: 700 },
+  cierreDate: { fontSize: 11.5, color: "#8A8272" },
+  turnoDiff: { fontSize: 12, fontWeight: 700 },
+  lockedNote: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#B3A891", padding: "6px 0" },
 
-  metodoBreakdownRow: { display: "flex", gap: 14, marginTop: 12, paddingTop: 12, borderTop: "1px solid #3a332a" },
-  metodoBreakdownItem: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2 },
-  metodoBreakdownLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: "#B3A891" },
-  metodoBreakdownValue: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#F7F4EC", fontWeight: 700 },
-  metodoBreakdownRowLight: { display: "flex", gap: 10, marginBottom: 16 },
-  metodoBreakdownItemLight: { flex: 1, background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 10, padding: "10px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 },
-  metodoBreakdownLabelLight: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: "#8A8272" },
-  metodoBreakdownValueLight: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: "#242019", fontWeight: 700 },
-  metodoPillsRow: { display: "flex", gap: 6 },
-  metodoPill: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: "#FFFEFA", border: "1px solid #D9CFAE", color: "#5C5644", borderRadius: 9, padding: "9px 6px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
-
-  turnoBox: { background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 },
-  turnoRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid #EBE5D3" },
-  turnoDiff: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700 },
-  diferenciaBox: { borderRadius: 8, padding: "10px 12px", fontSize: 13, fontWeight: 700, color: "#242019" },
-
-  inlineLink: { background: "none", border: "none", color: "#C1442D", fontSize: 10.5, textDecoration: "underline", cursor: "pointer", padding: 0, marginLeft: 4 },
-  inlineAddLink: { display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "#B98A2E", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: "6px 0" },
-  lockedNote: { display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#9A9382", fontStyle: "italic", padding: "6px 0" },
-
-  usuarioRow: { background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 10, padding: "10px 12px", marginBottom: 8 },
-  usuarioRowLeft: { display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" },
-  pinRevealBtn: { display: "flex", alignItems: "center", gap: 4, background: "#F0EDE3", border: "none", borderRadius: 7, padding: "3px 8px", fontSize: 10.5, fontFamily: "'IBM Plex Mono', monospace", color: "#5C5644", cursor: "pointer", letterSpacing: 1 },
-  usuarioRowActions: { display: "flex", alignItems: "center", gap: 10, marginTop: 6, paddingLeft: 23 },
-  resetPinRow: { display: "flex", gap: 8, marginTop: 8, paddingLeft: 23 },
+  usuarioRow: { display: "flex", flexDirection: "column", gap: 6, padding: "10px 0", borderBottom: "1px solid #EDE7D8" },
+  usuarioRowLeft: { display: "flex", alignItems: "center", gap: 6 },
+  usuarioRowActions: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  inlineLink: { background: "transparent", border: "none", color: "#B98A2E", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
+  inlineAddLink: { background: "transparent", border: "none", color: "#B98A2E", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: "6px 0", textAlign: "left", display: "flex", alignItems: "center", gap: 5 },
+  resetPinRow: { display: "flex", gap: 8, marginTop: 4 },
   rolPillsRow: { display: "flex", gap: 6 },
-  rolPill: { flex: 1, background: "#EFE9D9", border: "none", borderRadius: 8, padding: "9px", fontSize: 12.5, fontWeight: 600, color: "#8A8272", cursor: "pointer" },
-  rolPillActive: { background: "#242019", color: "#F7F4EC" },
-  auditText: { fontSize: 11.5, color: "#5C5644", flex: 1 },
-  descuentoBox: { background: "#FBEFD9", borderRadius: 10, padding: 10, marginTop: 4 },
-  propinaBox: { display: "flex", flexDirection: "column", gap: 6, padding: "6px 0" },
-  propinaPillsRow: { display: "flex", gap: 6, alignItems: "center" },
-  propinaPill: { background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 8, padding: "7px 11px", fontSize: 12, fontWeight: 600, color: "#5C5644", cursor: "pointer" },
-  propinaCustomInput: { width: 60, border: "1px solid #E4DFCE", borderRadius: 8, padding: "7px 8px", fontSize: 12 },
-  propinaCustomBtn: { background: "#242019", color: "#F7F4EC", border: "none", borderRadius: 8, padding: "7px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  rolPillsRowSmall: { display: "flex", gap: 4 },
+  rolPill: { flex: 1, padding: "9px 0", textAlign: "center", borderRadius: 8, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#5C5648", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+  rolPillSmall: { padding: "4px 8px", borderRadius: 7, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#8A8272", fontSize: 10.5, fontWeight: 600, cursor: "pointer" },
+  rolPillActive: { background: "#242019", color: "#F7F4EC", border: "1px solid #242019" },
+  auditText: { fontSize: 11.5, color: "#5C5648" },
 
-  subtotalRow: { display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "#5C5644", padding: "4px 0" },
-  subtotalRowFinal: { fontSize: 14.5, fontWeight: 700, color: "#242019", borderTop: "1px solid #E4DFCE", marginTop: 4, paddingTop: 8 },
+  pinVisorRow: { display: "flex", padding: "2px 0" },
+  pinVisorBtn: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#8A8272", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
+  pinVisorValue: { fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1.5, color: "#242019", fontWeight: 700 },
 
-  mesaCuentaCard: { background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 12, marginBottom: 10, overflow: "hidden" },
-  mesaCuentaHead: { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
+  metodoPillsRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  metodoPill: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 9, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#5C5648", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+
+  mesaCuentaCard: { background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 12, marginBottom: 10, overflow: "hidden" },
+  mesaCuentaHead: { width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "13px 14px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
   mesaCuentaLeft: { display: "flex", flexDirection: "column", gap: 3 },
-  mesaCuentaNum: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 600, color: "#242019" },
-  mesaCuentaSince: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#9A9382" },
-  mesaCuentaRight: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 },
-  mesaCuentaItems: { fontSize: 11, color: "#9A9382" },
-  mesaCuentaTotal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 700, color: "#242019" },
-  mesaCuentaBody: { padding: "0 16px 16px", borderTop: "1px solid #EBE5D3" },
-  mesaCuentaOrderRow: { display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid #EBE5D3", alignItems: "baseline" },
-  mesaCuentaOrderTime: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#9A9382", flexShrink: 0, width: 44 },
-  mesaCuentaOrderItems: { fontSize: 12.5, color: "#5C5644", flex: 1 },
-  mesaCuentaOrderTotal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#242019", fontWeight: 600 },
+  mesaCuentaNum: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#242019" },
+  mesaCuentaSince: { fontSize: 11, color: "#B3A891" },
+  enCursoTag: { fontSize: 10.5, fontWeight: 700, color: "#8A611A", background: "#FBEFD9", padding: "2px 7px", borderRadius: 8, alignSelf: "flex-start", marginTop: 2 },
+  mesaCuentaRight: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 },
+  mesaCuentaItems: { fontSize: 11, color: "#B3A891" },
+  mesaCuentaTotal: { fontFamily: "'Oswald', sans-serif", fontSize: 17, fontWeight: 700, color: "#242019" },
+  mesaCuentaBody: { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #EDE7D8" },
+  mesaCuentaOrderRow: { display: "flex", gap: 8, fontSize: 11.5, color: "#5C5648", padding: "6px 0", borderBottom: "1px solid #F1ECDD" },
+  mesaCuentaOrderTime: { color: "#B3A891", flexShrink: 0 },
+  mesaCuentaOrderItems: { flex: 1 },
+  mesaCuentaOrderTotal: { fontWeight: 700, color: "#242019", flexShrink: 0 },
 
-  cajaProductRow: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid #EBE5D3" },
-  cajaProductQty: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: "#C1442D", fontWeight: 600, width: 28 },
-  cajaProductName: { fontSize: 13.5, color: "#242019", flex: 1 },
-  cajaProductSubtotal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: "#5C5644" },
+  subtotalRow: { display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12.5, color: "#5C5648", padding: "4px 0" },
+  subtotalRowFinal: { fontSize: 15, fontWeight: 700, color: "#242019", borderTop: "1px solid #EDE7D8", marginTop: 4, paddingTop: 8 },
+  descuentoBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0" },
+  propinaBox: { display: "flex", flexDirection: "column", gap: 6, padding: "6px 0" },
+  propinaPillsRow: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" },
+  propinaPill: { padding: "7px 12px", borderRadius: 8, border: "1px solid #E4DFCE", background: "#FFFDF8", color: "#5C5648", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  propinaCustomInput: { width: 70, padding: "7px 8px", borderRadius: 8, border: "1px solid #E4DFCE", fontSize: 12 },
+  propinaCustomBtn: { padding: "7px 10px", borderRadius: 8, border: "none", background: "#242019", color: "#F7F4EC", fontSize: 12, fontWeight: 600, cursor: "pointer" },
 
-  closeCajaBtn: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#242019", color: "#F7F4EC", border: "none", borderRadius: 10, padding: "14px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 10 },
-  closeConfirmBox: { background: "#FBEFD9", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10, marginTop: 10 },
-  closeConfirmText: { fontSize: 12.5, color: "#6B5218", lineHeight: 1.5 },
+  pagosRegistradosBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0", borderTop: "1px solid #EDE7D8", marginTop: 4 },
+  pagosRegistradosLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1, color: "#B3A891", fontWeight: 700 },
+  pagoRow: { display: "flex", alignItems: "center", gap: 8 },
+  pagoRowMid: { display: "flex", flexDirection: "column", flex: 1, minWidth: 0 },
+  pagoRowEtiqueta: { fontSize: 12.5, fontWeight: 600, color: "#242019" },
+  pagoRowItems: { fontSize: 10.5, color: "#8A8272" },
+  pagoRowTime: { fontSize: 10.5, color: "#B3A891" },
+  pagoRowMonto: { fontSize: 12.5, fontWeight: 700, color: "#242019", flexShrink: 0 },
 
-  enCursoTag: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#B98A2E", fontWeight: 700, marginTop: 2 },
-  cobroBox: { background: "#F7F4EC", border: "1px solid #E4DFCE", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10, marginTop: 10 },
+  cobroBox: { display: "flex", flexDirection: "column", gap: 10, padding: "10px 0 0", borderTop: "1px solid #EDE7D8", marginTop: 6 },
+  cerrarVaciaBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0" },
+  cancelarCuentaBox: { padding: "10px 0 0", borderTop: "1px solid #EDE7D8", marginTop: 6 },
+  canceladasBox: { background: "#FBE2DC", border: "1px solid #E8BBAF", borderRadius: 10, padding: 10, marginBottom: 14 },
+  cargandoHistBox: { display: "flex", alignItems: "center", gap: 6, background: "#F1ECDD", borderRadius: 8, padding: "8px 10px", marginBottom: 10, fontSize: 11.5, color: "#8A8272" },
+  canceladasToggle: { width: "100%", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "#8A3A2B", fontSize: 12, fontWeight: 700, cursor: "pointer", textAlign: "left" },
+  canceladaRow: { padding: "7px 0", borderTop: "1px solid #E8BBAF" },
+  canceladaMotivo: { fontSize: 11.5, color: "#8A3A2B", marginTop: 2 },
   modoChoiceRow: { display: "flex", flexDirection: "column", gap: 8 },
-  modoChoiceBtn: { display: "flex", alignItems: "center", gap: 10, background: "#FFFEFA", border: "1px solid #E4DFCE", color: "#242019", borderRadius: 10, padding: "13px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
-  partesStepperRow: { display: "flex", alignItems: "center", gap: 10 },
-  productoSplitRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #EBE5D3" },
-  pagosRegistradosBox: { background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 10, padding: "10px 12px", marginTop: 10, marginBottom: 4 },
-  pagosRegistradosLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#8A8272", letterSpacing: 1, marginBottom: 6 },
-  pagoRow: { display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 0", borderBottom: "1px solid #EBE5D3" },
-  pagoRowMid: { flex: 1, display: "flex", flexDirection: "column", gap: 2 },
-  pagoRowEtiqueta: { fontSize: 12.5, color: "#242019", fontWeight: 600 },
-  pagoRowItems: { fontSize: 11, color: "#8A8272" },
-  pagoRowTime: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#9A9382" },
-  pagoRowMonto: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: "#242019", fontWeight: 700 },
-  dividedTag: { color: "#B98A2E", fontWeight: 700 },
+  partesStepperRow: { display: "flex", alignItems: "center", gap: 8 },
+  productoSplitRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: "1px solid #F1ECDD" },
 
-  cierreRow: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid #EBE5D3" },
-  cierreDate: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: "#8A8272", flex: 1 },
-  cierrePedidos: { fontSize: 11.5, color: "#9A9382" },
-  cierreTotal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: "#242019", fontWeight: 600, width: 70, textAlign: "right" },
+  rowBetween: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+  exportLink: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#B98A2E", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  histRow: { width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "13px 0", borderBottom: "1px solid #EDE7D8", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
+  histRowTitle: { fontSize: 14, fontWeight: 700, color: "#242019", flex: 1 },
+  histRowSub: { fontSize: 11.5, color: "#B3A891" },
+  histRowTotal: { fontSize: 14, fontWeight: 700, color: "#242019" },
 
-  goHistLink: { textAlign: "center", fontSize: 12.5, color: "#B98A2E", fontWeight: 600, padding: "14px 0 4px", cursor: "pointer" },
-  exportLink: { display: "flex", alignItems: "center", gap: 5, background: "none", border: "1px solid #D9D2BE", color: "#5C5644", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: "6px 10px", borderRadius: 8 },
-  histRow: { width: "100%", display: "flex", alignItems: "center", gap: 10, background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 10, padding: "13px 14px", marginBottom: 8, cursor: "pointer", textAlign: "left", fontFamily: "'Inter', sans-serif" },
-  histRowTitle: { fontSize: 14, color: "#242019", fontWeight: 600, flex: 1 },
-  histRowSub: { fontSize: 11, color: "#9A9382", fontFamily: "'IBM Plex Mono', monospace" },
-  histRowTotal: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, color: "#242019", fontWeight: 600 },
+  metodoBreakdownRowLight: { display: "flex", gap: 16, flexWrap: "wrap" },
+  metodoBreakdownItemLight: { display: "flex", alignItems: "center", gap: 5 },
+  metodoBreakdownLabelLight: { fontSize: 11.5, color: "#8A8272" },
+  metodoBreakdownValueLight: { fontSize: 12.5, color: "#242019", fontWeight: 700 },
 
-  chartBox: { background: "#FFFEFA", border: "1px solid #E4DFCE", borderRadius: 12, padding: "12px 8px 4px", marginBottom: 8 },
-  meseroStatRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #EBE5D3" },
-  meseroStatLeft: { display: "flex", alignItems: "center", gap: 7 },
-  meseroStatSub: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#9A9382", marginLeft: 4 },
+  cierreRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #EDE7D8" },
+  cierrePedidos: { fontSize: 11, color: "#B3A891", flexShrink: 0 },
+  cierreTotal: { fontSize: 12.5, fontWeight: 700, color: "#242019", flexShrink: 0 },
+  dividedTag: { color: "#B98A2E", fontWeight: 600 },
+
+  cajaProductRow: { display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid #F1ECDD" },
+  cajaProductQty: { color: "#C1442D", fontWeight: 700, fontSize: 12.5, minWidth: 28 },
+  cajaProductName: { flex: 1, fontSize: 12.5, color: "#242019" },
+  cajaProductSubtotal: { fontSize: 12.5, fontWeight: 700, color: "#242019" },
+  chartBox: { background: "#FFFDF8", border: "1px solid #E4DFCE", borderRadius: 12, padding: "10px 6px", marginBottom: 4 },
+
+  meseroStatRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 0", borderBottom: "1px solid #EDE7D8" },
+  meseroStatLeft: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  meseroStatSub: { fontSize: 11, color: "#B3A891" },
 };

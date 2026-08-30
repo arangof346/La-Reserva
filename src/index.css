@@ -1,0 +1,50 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #F7F4EC;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Se usa en encabezados pensados solo para el papel/PDF (ej. título y fecha
+   de un reporte impreso) — invisibles en la app normal, aparecen al imprimir. */
+.solo-imprimir {
+  display: none;
+}
+
+/* Resumen del día imprimible (Caja → Historial → un día → Imprimir):
+   solo se ve el contenido del resumen, sin la barra superior ni las
+   pestañas, y sin que los contenedores con scroll interno de la app
+   recorten el contenido — así queda completo en papel o al "Guardar
+   como PDF". */
+@media print {
+  .no-imprimir {
+    display: none !important;
+  }
+  .solo-imprimir {
+    display: block !important;
+  }
+  body {
+    background: #fff;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #root, #root * {
+    visibility: visible;
+  }
+  html, body, #root, #root * {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+}
+
