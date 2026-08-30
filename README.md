@@ -1,117 +1,101 @@
-# Comandas — Dulce & Café
+# Comandas — listo para Netlify
 
-Este proyecto ya trae todo el sistema (mesero, cocina, caja) listo para subir
-a internet con dominio propio, usando **Firebase** como base de datos y
-**Netlify** como hospedaje.
+Este proyecto ya está armado para desplegarse en Netlify sin que tengas que
+modificar nada de estructura. Solo falta un paso tuyo: conectar una base de
+datos gratuita (Firebase) para que los datos se vean en vivo entre
+dispositivos y no se pierdan al cerrar la página.
 
-## Parte 1 — Crear el proyecto de Firebase (una sola vez)
+## Por qué hace falta Firebase
 
-1. Entra a https://console.firebase.google.com y crea una cuenta gratis si no
-   tienes (con tu cuenta de Google normal).
-2. Clic en **"Crear un proyecto"**. Ponle el nombre que quieras (ej. "dulce-cafe").
-   No hace falta activar Google Analytics — puedes dejarlo desactivado.
-3. Una vez creado, en el menú de la izquierda entra a **"Compilación" → "Firestore Database"**.
-4. Clic en **"Crear base de datos"**. Elige la ubicación más cercana (ej. `southamerica-east1`
-   o la que te sugiera). Empieza en **modo de producción**.
-5. Ve a la pestaña **"Reglas"** dentro de Firestore, borra lo que haya y pega esto:
+Netlify solo sirve archivos — no guarda información por sí solo. Para que el
+Mesero, la Cocina y la Caja (en celulares/tablets distintos) vean los mismos
+pedidos y cuentas **en tiempo real**, la app necesita una base de datos en la
+nube. Usamos **Firebase Realtime Database**, que tiene un plan gratuito más
+que suficiente para un negocio de este tamaño.
+
+## Paso 1 — Crear el proyecto de Firebase (5 minutos, gratis)
+
+1. Ve a https://console.firebase.google.com y crea un proyecto nuevo.
+2. En el menú lateral: **Compilación → Realtime Database → Crear base de
+   datos**. Elige la región más cercana a ti. Cuando pregunte por las reglas
+   de seguridad, elige **"Modo de prueba"** para arrancar rápido.
+3. Ve a **⚙️ Configuración del proyecto → General → Tus apps** y haz clic en
+   el ícono **`</>`** (Web) para registrar una app web. No hace falta
+   Firebase Hosting, solo necesitas el objeto de configuración que te
+   muestra, algo así:
+
+   ```js
+   const firebaseConfig = {
+     apiKey: "AIza...",
+     authDomain: "tu-proyecto.firebaseapp.com",
+     databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
+     projectId: "tu-proyecto",
+     storageBucket: "tu-proyecto.appspot.com",
+     messagingSenderId: "123456789",
+     appId: "1:123456789:web:abc123",
+   };
    ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /data/{document=**} {
-         allow read, write: if true;
-       }
-     }
-   }
-   ```
-   Clic en **"Publicar"**.
 
-   > Nota importante: esto deja la base de datos abierta a cualquiera que tenga
-   > el link de tu sitio — es el mismo nivel de acceso que ya tenías con el
-   > artifact de Claude. Es razonable para un negocio pequeño, pero si más
-   > adelante quieres restringirlo con login, se puede hacer después.
+4. Abre `src/firebase.js` en este proyecto y reemplaza el objeto
+   `firebaseConfig` de ejemplo por el que copiaste.
 
-6. Ahora ve a **"Configuración del proyecto"** (el ícono de engranaje arriba a
-   la izquierda) → pestaña **"General"** → baja hasta "Tus apps" → clic en el
-   ícono `</>` (Web) para registrar una app web.
-7. Ponle un apodo (ej. "comandas-web") y clic en **"Registrar app"**. Firebase
-   te muestra un bloque de código con 6 valores como estos:
-   ```
-   apiKey: "AIzaSy...",
-   authDomain: "dulce-cafe.firebaseapp.com",
-   projectId: "dulce-cafe",
-   storageBucket: "dulce-cafe.appspot.com",
-   messagingSenderId: "123456789",
-   appId: "1:123456789:web:abc123"
-   ```
-   Guarda esos 6 valores — los necesitas ahora.
+Sobre seguridad: el archivo `database.rules.json` que incluí deja la base
+abierta (cualquiera con la URL puede leer/escribir), lo cual es aceptable
+para una herramienta interna pequeña — la URL no es pública en ningún lado.
+Si más adelante quieres cerrarla más, en la consola de Firebase puedes pegar
+reglas más estrictas en Realtime Database → Reglas.
 
-## Parte 2 — Configurar el proyecto en tu computador
+## Paso 2 — Subir el proyecto a Netlify
 
-1. Instala Node.js si no lo tienes: https://nodejs.org (versión LTS).
-2. Abre una terminal dentro de esta carpeta y corre:
+**Opción A (recomendada): conectar un repositorio Git**
+
+1. Sube esta carpeta completa a un repositorio de GitHub (o GitLab/Bitbucket).
+2. En Netlify: **Add new site → Import an existing project**, elige el
+   repositorio.
+3. Netlify va a detectar automáticamente el archivo `netlify.toml` — el
+   comando de build (`npm run build`) y la carpeta a publicar (`dist`) ya
+   quedan configurados, no cambies nada ahí.
+4. Deploy. Netlify instala dependencias, compila y publica solo.
+
+**Opción B: sin Git, deploy manual**
+
+1. En tu computador, con [Node.js](https://nodejs.org) instalado, entra a
+   esta carpeta en la terminal y corre:
    ```
    npm install
-   ```
-3. Copia el archivo `.env.example` y renómbralo a `.env`.
-4. Abre `.env` y pega los 6 valores de Firebase que guardaste, así:
-   ```
-   VITE_FIREBASE_API_KEY=AIzaSy...
-   VITE_FIREBASE_AUTH_DOMAIN=dulce-cafe.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=dulce-cafe
-   VITE_FIREBASE_STORAGE_BUCKET=dulce-cafe.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-   VITE_FIREBASE_APP_ID=1:123456789:web:abc123
-   ```
-5. Para probarlo en tu computador antes de publicarlo:
-   ```
-   npm run dev
-   ```
-   Te da un link tipo `http://localhost:5173` — ábrelo en el navegador y
-   prueba que todo funcione (crear un pedido, etc.) antes de publicar.
-
-## Parte 3 — Publicar en Netlify
-
-**Opción fácil (arrastrar y soltar, sin necesidad de GitHub):**
-
-1. En la terminal, dentro de esta carpeta, corre:
-   ```
    npm run build
    ```
-   Esto crea una carpeta `dist/` con la versión final del sitio.
-2. Entra a https://app.netlify.com y crea una cuenta gratis.
-3. En el panel principal, busca la zona que dice **"Drag and drop your site
-   output folder here"** (arrastra aquí la carpeta de tu sitio).
-4. Arrastra la carpeta `dist` (la que se generó en el paso 1) a esa zona.
-5. Netlify te da un link público al instante (algo como
-   `https://nombre-random.netlify.app`). Ya tu sitio está en línea.
-6. **Muy importante:** ese primer despliegue NO va a funcionar todavía porque
-   le faltan las variables de Firebase (el archivo `.env` no se sube con
-   `dist`, es solo para tu computador). Ve a:
-   **Site settings → Environment variables → Add a variable**, y agrega ahí
-   las mismas 6 variables `VITE_FIREBASE_...` con sus valores.
-7. Luego ve a **Deploys → Trigger deploy → Clear cache and deploy site** para
-   que tome las variables nuevas. Ahora sí debería funcionar completo.
+2. Esto crea una carpeta `dist/`. Ve a https://app.netlify.com/drop y
+   arrastra esa carpeta `dist` — Netlify la publica al instante.
+3. Si luego cambias algo del código, repite `npm run build` y vuelve a
+   arrastrar `dist`.
 
-**Opción recomendada a futuro (con GitHub):** si luego quieres que cada
-cambio se publique solo, sube esta carpeta a un repositorio de GitHub y
-conecta ese repositorio desde Netlify ("Import from Git") — así Netlify
-reconstruye el sitio automáticamente cada vez que subas un cambio, sin tener
-que repetir `npm run build` y arrastrar la carpeta a mano.
+## Verificar que todo funciona
 
-## Poner tu propio dominio (opcional)
+1. Abre el link de Netlify en dos pestañas o dos dispositivos distintos.
+2. En una, entra como Mesero y envía un pedido.
+3. En la otra, entra como Cocina — el pedido debe aparecer solo, sin
+   recargar la página.
+4. Cierra ambas pestañas y vuelve a abrir el link: todo lo que hiciste debe
+   seguir ahí (nada se borra).
 
-Si tienes o compras un dominio (ej. `dulceycafe.com`), en Netlify:
-**Site settings → Domain management → Add a custom domain**, y sigue las
-instrucciones para apuntar tu dominio ahí. Netlify también te regala un
-certificado de seguridad (https) automático.
+Si algo no aparece en vivo, lo más probable es que falte pegar el
+`firebaseConfig` real en `src/firebase.js` — revisa la consola del navegador
+(F12) por errores de Firebase.
 
-## Notas
+## Estructura del proyecto
 
-- Los datos (menú, pedidos, cuentas, usuarios) ahora viven en Firebase, no en
-  Claude — puedes cerrar esta conversación y el sitio sigue funcionando para
-  siempre.
-- El PIN de Caja y de cada mesero, el menú, el historial: todo se mantiene
-  igual que en la versión que ya conoces, solo cambió dónde se guarda.
-- Si algún día quieres mover esto a otro hospedaje (Vercel, etc.), el mismo
-  proyecto sirve — Netlify no es la única opción, solo la que armamos ahora.
+```
+├── index.html          punto de entrada HTML
+├── netlify.toml         configuración de build para Netlify
+├── database.rules.json  reglas de seguridad sugeridas para Firebase
+├── package.json          dependencias (React, Firebase, recharts, xlsx, lucide-react)
+├── vite.config.js        configuración del bundler
+└── src/
+    ├── main.jsx          monta la app de React
+    ├── App.jsx           toda la app (Mesero, Cocina, Caja)
+    └── firebase.js        conexión a la base de datos en vivo — AQUÍ pegas tu config
+```
+
+No necesitas tocar nada más que `src/firebase.js`. El resto del código está
+listo tal cual para producción.

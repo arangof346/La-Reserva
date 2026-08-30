@@ -1,0 +1,12 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "orders": {
+      ".indexOn": ["ts"]
+    },
+    "cuentas": {
+      ".indexOn": ["ts", "pagadaTs"]
+    }
+  }
+}
