@@ -23,85 +23,21 @@ const DEFAULT_MESAS = [
   { id: "4", nombre: "Mesa 4" },
 ];
 
-const DEFAULT_MENU = [
-  { id: "m1", name: "Limonada Natural", price: 7000, cat: "Limonadas y Jugos" },
-  { id: "m2", name: "Limonada de Coco", price: 9000, cat: "Limonadas y Jugos" },
-  { id: "m3", name: "Limonada de Cereza", price: 9000, cat: "Limonadas y Jugos" },
-  { id: "m4", name: "Jugos en Agua", price: 9000, cat: "Limonadas y Jugos" },
-  { id: "m5", name: "Jugos en Leche", price: 10000, cat: "Limonadas y Jugos" },
-  { id: "m6", name: "Tinto", price: 1500, cat: "Bebidas Calientes" },
-  { id: "m7", name: "Americano", price: 3000, cat: "Bebidas Calientes" },
-  { id: "m8", name: "Espresso Sencillo", price: 4000, cat: "Bebidas Calientes" },
-  { id: "m9", name: "Espresso Doble", price: 6000, cat: "Bebidas Calientes" },
-  { id: "m10", name: "Café con Leche", price: 4000, cat: "Bebidas Calientes" },
-  { id: "m11", name: "Capuchino", price: 6000, cat: "Bebidas Calientes" },
-  { id: "m12", name: "Capuchino Brownie", price: 7000, cat: "Bebidas Calientes" },
-  { id: "m13", name: "Capuchino Caramelo", price: 7000, cat: "Bebidas Calientes" },
-  { id: "m14", name: "Mocaccino", price: 7000, cat: "Bebidas Calientes" },
-  { id: "m15", name: "Latte Machiato", price: 7000, cat: "Bebidas Calientes" },
-  { id: "m16", name: "Colada de Café", price: 7000, cat: "Bebidas Calientes" },
-  { id: "m17", name: "Colada Tradicional", price: 6000, cat: "Bebidas Calientes" },
-  { id: "m18", name: "Affogato ⭐", price: 9000, cat: "Bebidas Calientes" },
-  { id: "m19", name: "Migote (con licor)", price: 14000, cat: "Bebidas Calientes" },
-  { id: "m20", name: "Milo", price: 5000, cat: "Bebidas Calientes" },
-  { id: "m21", name: "Milo con Masmelo", price: 6000, cat: "Bebidas Calientes" },
-  { id: "m22", name: "Chocolate con Masmelo", price: 6000, cat: "Bebidas Calientes" },
-  { id: "m23", name: "Aromática frutas deshidratadas", price: 6000, cat: "Bebidas Calientes" },
-  { id: "m24", name: "Aromática bolsa", price: 3000, cat: "Bebidas Calientes" },
-  { id: "m25", name: "Carajillo (aguardiente, ron o brandy)", price: 8000, cat: "Bebidas Calientes" },
-  { id: "m26", name: "Capuchino con Licor (whisky, amaretto o ron)", price: 10000, cat: "Bebidas Calientes" },
-  { id: "m27", name: "Malteada pequeña", price: 10000, cat: "Bebidas Frías" },
-  { id: "m28", name: "Malteada grande", price: 16000, cat: "Bebidas Frías" },
-  { id: "m29", name: "Granizado (café, milo, mango biche, maracuyá)", price: 12000, cat: "Bebidas Frías" },
-  { id: "m30", name: "Nevado fantasía de café", price: 13000, cat: "Bebidas Frías" },
-  { id: "m31", name: "Nevado de arequipe (whisky o piña colada)", price: 14000, cat: "Bebidas Frías" },
-  { id: "m32", name: "Milo frío", price: 9000, cat: "Bebidas Frías" },
-  { id: "m33", name: "Capuchino frío", price: 11000, cat: "Bebidas Frías" },
-  { id: "m34", name: "Soda michelada saborizada", price: 13000, cat: "Bebidas Frías" },
-  { id: "m35", name: "Tamarindo michelado", price: 7000, cat: "Bebidas Frías" },
-  { id: "m36", name: "Tamarindo envenenado", price: 12000, cat: "Bebidas Frías" },
-  { id: "m37", name: "Gaseosa Tamarindo", price: 5000, cat: "Bebidas Frías" },
-  { id: "m38", name: "Coca-Cola", price: 5000, cat: "Bebidas Frías" },
-  { id: "m39", name: "Jugos Hit", price: 4000, cat: "Bebidas Frías" },
-  { id: "m40", name: "Agua", price: 2000, cat: "Bebidas Frías" },
-  { id: "m41", name: "Pony Malta", price: 4000, cat: "Bebidas Frías" },
-  { id: "m42", name: "Gatorade", price: 5000, cat: "Bebidas Frías" },
-  { id: "m43", name: "Bretaña", price: 4000, cat: "Bebidas Frías" },
-  { id: "m44", name: "Águila Light", price: 5000, cat: "Cervezas" },
-  { id: "m45", name: "Corona", price: 7000, cat: "Cervezas" },
-  { id: "m46", name: "Coronita", price: 5000, cat: "Cervezas" },
-  { id: "m47", name: "Poker", price: 5000, cat: "Cervezas" },
-  { id: "m48", name: "Pilsen", price: 5000, cat: "Cervezas" },
-  { id: "m49", name: "Club Colombia roja/dorada (consultar precio)", price: 0, cat: "Cervezas" },
-  { id: "m50", name: "Cerveza Saborizada", price: 14000, cat: "Cervezas" },
-  { id: "m51", name: "Cerveza Mango Biche", price: 15000, cat: "Cervezas" },
-  { id: "m52", name: "Michelada Pilsen · Águila · Poker", price: 6000, cat: "Micheladas" },
-  { id: "m53", name: "Michelada Corona · Club Colombia", price: 8000, cat: "Micheladas" },
-  { id: "m54", name: "Michelada Bretaña", price: 6000, cat: "Micheladas" },
-  { id: "m55", name: "Copa de Helado", price: 11000, cat: "Helados y Postres" },
-  { id: "m56", name: "Cono de Helado", price: 4000, cat: "Helados y Postres" },
-  { id: "m57", name: "Brownie con Helado", price: 10000, cat: "Helados y Postres" },
-  { id: "m58", name: "Fresas con Crema", price: 16000, cat: "Helados y Postres" },
-  { id: "m59", name: "Ensalada de Frutas", price: 15000, cat: "Helados y Postres" },
-  { id: "m60", name: "Copa de Queso", price: 14000, cat: "Helados y Postres" },
-  { id: "m61", name: "Payaso Plim Plim", price: 11000, cat: "Menú Infantil" },
-  { id: "m62", name: "Pulpo", price: 11000, cat: "Menú Infantil" },
-  { id: "m63", name: "Osito Vetta", price: 12000, cat: "Menú Infantil" },
-  { id: "m64", name: "Granizado para Niños", price: 10000, cat: "Menú Infantil" },
-];
+// Menú inicial vacío: cada negocio carga el suyo desde Mesero → Menú (solo admin).
+const DEFAULT_MENU = [];
 
 const STATE_META = {
-  pendiente: { label: "En cocina", color: "#C1442D" },
-  preparando: { label: "Preparando", color: "#B98A2E" },
-  listo: { label: "Listo para servir", color: "#2F6690" },
-  servido: { label: "Servido", color: "#5B7553" },
-  cancelado: { label: "Cancelado", color: "#8B80A3" },
+  pendiente: { label: "En cocina", color: "#D9737C" },
+  preparando: { label: "Preparando", color: "#D9AE5C" },
+  listo: { label: "Listo para servir", color: "#7EA6D6" },
+  servido: { label: "Servido", color: "#7FAE8B" },
+  cancelado: { label: "Cancelado", color: "#7F7899" },
 };
 
 const METODO_META = {
-  efectivo: { label: "Efectivo", icon: Banknote, color: "#5B7553" },
-  tarjeta: { label: "Tarjeta", icon: CreditCard, color: "#2F6690" },
-  transferencia: { label: "Transferencia", icon: Smartphone, color: "#8A611A" },
+  efectivo: { label: "Efectivo", icon: Banknote, color: "#7FAE8B" },
+  tarjeta: { label: "Tarjeta", icon: CreditCard, color: "#7EA6D6" },
+  transferencia: { label: "Transferencia", icon: Smartphone, color: "#E0B866" },
 };
 
 const PROPINA_OPCIONES = [0, 10, 15, 20];
@@ -145,12 +81,12 @@ function mesaOrderIndex(mesas, mesaId) {
 // "hay algo pendiente en cocina" (rojo), "ya está listo pero nadie lo ha
 // llevado a la mesa" (azul), "cuenta abierta, todo servido" (verde) y libre.
 function estadoVisualMesa(cuenta, ordersDeLaCuenta) {
-  if (!cuenta) return { tag: "Libre", bg: "#E6DDF5", color: "#8B80A3" };
+  if (!cuenta) return { tag: "Libre", bg: "#2E2840", color: "#9A93B0" };
   const enCocina = ordersDeLaCuenta.some((o) => o.estado === "pendiente" || o.estado === "preparando");
-  if (enCocina) return { tag: "En cocina", bg: "#C1442D", color: "#F3EEFB" };
+  if (enCocina) return { tag: "En cocina", bg: "#D9737C", color: "#16131D" };
   const listoSinServir = ordersDeLaCuenta.some((o) => o.estado === "listo");
-  if (listoSinServir) return { tag: "Listo para servir", bg: "#2F6690", color: "#F3EEFB" };
-  return { tag: "Cuenta abierta", bg: "#5B7553", color: "#F3EEFB" };
+  if (listoSinServir) return { tag: "Listo para servir", bg: "#7EA6D6", color: "#16131D" };
+  return { tag: "Cuenta abierta", bg: "#7FAE8B", color: "#16131D" };
 }
 
 /* ---------------- helpers ---------------- */
@@ -219,9 +155,9 @@ function elapsedLabel(ts) {
 }
 function urgencyColor(ts) {
   const mins = (Date.now() - ts) / 60000;
-  if (mins >= 10) return "#C1442D";
-  if (mins >= 5) return "#B98A2E";
-  return "#5B7553";
+  if (mins >= 10) return "#D9737C";
+  if (mins >= 5) return "#D9AE5C";
+  return "#7FAE8B";
 }
 function timeLabel(ts) {
   return new Date(ts).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
@@ -329,12 +265,14 @@ function playBeep() {
   }
 }
 
-// Notificación del sistema — solo funciona mientras el navegador siga abierto
-// (aunque sea en segundo plano). Con la pantalla bloqueada NO llega.
+// Notificación del sistema (como cualquier notificación de WhatsApp) — solo
+// funciona mientras el navegador siga abierto (aunque sea en segundo plano
+// o en otra pestaña). Con la pantalla del celular totalmente bloqueada NO
+// llega — eso necesitaría un servidor de notificaciones push aparte.
 function mostrarNotificacionSistema(titulo, cuerpo) {
   try {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
-    if (document.visibilityState === "visible") return;
+    if (document.visibilityState === "visible") return; // ya lo está viendo, no hace falta duplicar
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
       navigator.serviceWorker.ready.then((reg) => {
         reg.showNotification(titulo, { body: cuerpo, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png" });
@@ -346,7 +284,7 @@ function mostrarNotificacionSistema(titulo, cuerpo) {
 }
 
 
-/* La carga/guardado de datos en vivo vive en ./firebase.js (Firebase Realtime Database) */
+/* La carga/guardado de datos en vivo ahora vive en ./firebase.js (Firebase Realtime Database) */
 
 function descargarRespaldo({ menu, orders, cuentas, config, turnos, mesas }) {
   const data = { version: 2, exportadoTs: Date.now(), menu, orders, cuentas, config, turnos, mesas };
@@ -403,7 +341,7 @@ function exportarExcel(cuentas, orders, config, mesas) {
 
 /* ---------------- App ---------------- */
 
-const DEFAULT_CONFIG = { businessName: "La Reserva", usuarios: [], auditLog: [] };
+const DEFAULT_CONFIG = { businessName: import.meta.env.VITE_NOMBRE_NEGOCIO || "Mi Negocio", usuarios: [], auditLog: [] };
 
 export default function App() {
   const [role, setRole] = useState("mesero");
@@ -415,13 +353,19 @@ export default function App() {
   const [mesas, setMesas] = useState(DEFAULT_MESAS);
   const [loaded, setLoaded] = useState(false);
   const [, forceTick] = useState(0);
-  const [usuarioActual, setUsuarioActual] = useState(null);
-  // Si algo falla al guardar en Firebase se muestra un aviso visible.
+  const [usuarioActual, setUsuarioActual] = useState(null); // { nombre, rol } — aplica a toda la app, no solo a un rol
+  // Si algo falla al guardar en Firebase (por ejemplo, se cortó el internet a
+  // mitad de camino), esto deja de ser un error silencioso en la consola —
+  // se muestra un aviso visible para que quien esté usando la app se entere
+  // en el momento, en vez de descubrirlo días después con datos faltantes.
   const [errorGuardado, setErrorGuardado] = useState(null);
   const avisarErrorGuardado = useCallback((msg) => setErrorGuardado(msg), []);
+  // (el login de caja usa el mismo usuarioActual de arriba — ya no hay un estado separado)
   const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
 
-  // Los navegadores bloquean audio automático hasta que hay una interacción real.
+  // Los navegadores bloquean audio automático hasta que hay una interacción real
+  // del usuario. Con el primer toque en cualquier parte de la app "despertamos"
+  // el audio para que la campanita de cocina sí pueda sonar más adelante.
   useEffect(() => {
     const unlock = () => {
       try {
@@ -442,7 +386,7 @@ export default function App() {
     return () => { window.removeEventListener("touchstart", unlock); window.removeEventListener("click", unlock); };
   }, []);
 
-  // Estado de conexión real del navegador.
+  // Estado de conexión real del navegador (sirve como indicador de "en vivo").
   useEffect(() => {
     const goOnline = () => setOnline(true);
     const goOffline = () => setOnline(false);
@@ -451,8 +395,13 @@ export default function App() {
     return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
   }, []);
 
-  // Suscripción en vivo a Firebase. Pedidos y cuentas solo se suscriben a los
-  // últimos VENTANA_DIAS; la ventana se refresca cada hora.
+  // Suscripción en vivo a Firebase: cualquier cambio hecho desde otro dispositivo
+  // (otro mesero, cocina o caja) se refleja aquí automáticamente, sin recargar.
+  // Pedidos y cuentas solo se suscriben a los últimos VENTANA_DIAS (ver arriba)
+  // — eso es lo único que hace falta para operar el día a día, y por eso
+  // nunca pesa más aunque pasen los años. La ventana se refresca cada hora
+  // para que siga corriendo con el tiempo en sesiones muy largas. Turnos,
+  // menú, mesas y config son siempre chicos y se cargan completos.
   const [ventanaEpoch, setVentanaEpoch] = useState(0);
   useEffect(() => {
     const refrescar = setInterval(() => setVentanaEpoch((e) => e + 1), 60 * 60 * 1000);
@@ -476,7 +425,9 @@ export default function App() {
     return () => { unsubs.forEach((unsub) => unsub && unsub()); clearInterval(clock); };
   }, [ventanaEpoch]);
 
-  // Historial completo bajo demanda (una sola vez, no en vivo).
+  // Historial completo bajo demanda: null hasta que alguien entra a Historial
+  // o pide exportar/respaldar. Se pide UNA VEZ (no en vivo) y se combina con
+  // lo que ya está cargado en vivo (que siempre tiene lo más reciente).
   const [historialCompleto, setHistorialCompleto] = useState(null);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const cargarHistorialCompleto = useCallback(async () => {
@@ -486,6 +437,8 @@ export default function App() {
     setHistorialCompleto({ orders: todosOrders, cuentas: todasCuentas });
     setCargandoHistorial(false);
   }, [historialCompleto, cargandoHistorial]);
+  // Combina el historial completo (si ya se pidió) con la ventana en vivo,
+  // dejando que la ventana en vivo "gane" por ser más reciente.
   const mergeConVentana = (base, ventana) => {
     const byId = Object.fromEntries(base.map((r) => [r.id, r]));
     ventana.forEach((r) => { byId[r.id] = r; });
@@ -494,8 +447,11 @@ export default function App() {
   const ordersParaHistorial = historialCompleto ? mergeConVentana(historialCompleto.orders, orders) : orders;
   const cuentasParaHistorial = historialCompleto ? mergeConVentana(historialCompleto.cuentas, cuentas) : cuentas;
 
-  // Respaldo automático diario: cuando un admin abre la app, crea la copia de
-  // AYER si falta, trayendo solo los pedidos y cuentas de ese día.
+  // Respaldo automático diario: cada vez que un administrador abre la app,
+  // revisa si ya existe una copia del día de AYER (el de hoy todavía no ha
+  // terminado). Si falta, la crea sola — solo trae los pedidos y cuentas de
+  // ESE día puntual (no todo el historial), así el respaldo automático nunca
+  // se vuelve más pesado sin importar cuántos años lleve funcionando esto.
   useEffect(() => {
     if (!usuarioActual || !tieneRol(usuarioActual, "admin") || !loaded) return;
     let cancelado = false;
@@ -556,7 +512,10 @@ export default function App() {
     );
   }
 
-  // Al iniciar sesión, cada quien cae directo en su sección.
+  // Al iniciar sesión, cada quien cae directo en su sección — un mesero no
+  // tiene por qué terminar viendo la pantalla de Caja, ni al revés. Un admin
+  // (o alguien con los dos roles) se queda donde ya estaba, porque tiene
+  // acceso a ambas.
   const onLogin = (usuario) => {
     setUsuarioActual(usuario);
     const esMesero = tieneRol(usuario, "mesero");
@@ -630,7 +589,7 @@ function TopBar({ role, setRole, config, usuarioActual, onCambiarUsuario, online
       <div style={styles.brand}>
         <span style={styles.brandMark}>◆</span>
         <span style={styles.brandText}>{(config.businessName || "LA COMANDA").toUpperCase()}</span>
-        <span style={{ ...styles.syncDot, background: online ? "#5B7553" : "#C1442D" }} title={online ? "En línea" : "Sin conexión"} />
+        <span style={{ ...styles.syncDot, background: online ? "#7FAE8B" : "#D9737C" }} title={online ? "En línea" : "Sin conexión"} />
       </div>
       {usuarioActual && (
         <button style={styles.meseroChip} onClick={onCambiarUsuario}>
@@ -769,11 +728,14 @@ function UsuarioLogin({ config, persistConfig, onEntrar }) {
 /* ---------------- MESERO ---------------- */
 
 function MeseroView({ menu, orders, cuentas, usuarioActual, config, mesas, persistMesas, saveOrder, saveOrdersMap, saveCuenta, persistMenu, persistConfig }) {
-  // Editar el menú, precios y mesas queda reservado al administrador.
+  // Editar el menú, precios y mesas queda reservado al administrador — un
+  // mesero normal no debería poder cambiar precios ni borrar productos.
   const meseroActual = usuarioActual.nombre;
   const esAdminMesero = tieneRol(usuarioActual, "admin");
 
-  // Aviso sonoro cuando cocina marca "listo" un pedido de alguna de SUS mesas.
+  // Aviso sonoro para el mesero: cuando cocina marca "listo" un pedido de
+  // alguna de SUS mesas todavía abiertas, suena y aparece un mensaje — así
+  // no tiene que estar entrando a cada mesa a chequear si ya puede servir.
   const idsListosVistosRef = useRef(null);
   const [avisoListo, setAvisoListo] = useState(null);
   useEffect(() => {
@@ -781,7 +743,7 @@ function MeseroView({ menu, orders, cuentas, usuarioActual, config, mesas, persi
     const listosAhora = orders.filter((o) => o.estado === "listo" && misCuentaIds.has(o.cuentaId));
     const idsActuales = new Set(listosAhora.map((o) => o.id));
     if (idsListosVistosRef.current === null) {
-      idsListosVistosRef.current = idsActuales;
+      idsListosVistosRef.current = idsActuales; // primera carga: no suena por lo que ya estaba listo antes
       return;
     }
     const nuevos = listosAhora.filter((o) => !idsListosVistosRef.current.has(o.id));
@@ -864,16 +826,19 @@ function MeseroView({ menu, orders, cuentas, usuarioActual, config, mesas, persi
   const [enviando, setEnviando] = useState(false);
   const enviarPedido = async (mesaNum) => {
     if (totalItems === 0) return;
-    if (enviandoRef.current) return; // evita duplicar el pedido con doble toque
+    if (enviandoRef.current) return; // ya se está enviando — ignora el segundo toque para no duplicar el pedido
     enviandoRef.current = true;
     setEnviando(true);
     try {
-      // Si alguien borró un producto del menú desde otro dispositivo, se ignora.
+      // Si alguien borró un producto del menú desde otro dispositivo justo mientras
+      // este mesero lo tenía en el carrito, lo ignoramos en vez de romper el envío.
       const items = Object.entries(draft)
         .map(([id, { qty, nota }]) => {
           const m = menu.find((x) => x.id === id);
           if (!m) return null;
-          // Se guarda el costo de ESTE momento junto al pedido.
+          // Se guarda el costo de ESTE momento junto al pedido — así el margen
+          // de una venta vieja no cambia después si algún día actualizas el
+          // costo del producto en el menú.
           return { id, name: m.name, price: m.price, cost: m.cost || 0, qty, nota: (nota || "").trim() };
         })
         .filter(Boolean);
@@ -1013,7 +978,7 @@ function MeseroView({ menu, orders, cuentas, usuarioActual, config, mesas, persi
                       ) : (
                         <>
                           <button style={styles.iconBtn} onClick={() => startEdit(o)} title="Modificar"><Pencil size={13} /></button>
-                          <button style={{ ...styles.iconBtn, color: "#C1442D" }} onClick={() => setConfirmCancelId(o.id)} title="Cancelar"><Ban size={13} /></button>
+                          <button style={{ ...styles.iconBtn, color: "#D9737C" }} onClick={() => setConfirmCancelId(o.id)} title="Cancelar"><Ban size={13} /></button>
                         </>
                       )}
                     </div>
@@ -1260,7 +1225,7 @@ function MenuEditor({ menu, persistMenu, config, persistConfig, actor, onClose }
                     >
                       <PauseCircle size={14} />
                     </button>
-                    <span style={{ ...styles.menuItemName, ...(item.agotado ? { textDecoration: "line-through", color: "#8B80A3" } : {}) }}>{item.name}</span>
+                    <span style={{ ...styles.menuItemName, ...(item.agotado ? { textDecoration: "line-through", color: "#7F7899" } : {}) }}>{item.name}</span>
                     {editingItemId !== item.id && (
                       <button style={styles.precioEditableBtn} onClick={() => empezarEdicionItem(item)}>{money(item.price)} <Pencil size={10} /></button>
                     )}
@@ -1299,8 +1264,10 @@ function MenuEditor({ menu, persistMenu, config, persistConfig, actor, onClose }
   );
 }
 
-/** Plano visual del salón: cada mesa se dibuja en su posición real (x%, y%).
- * En modo "editable" se puede arrastrar cada mesa; si no, solo se toca para entrar. */
+/** Plano visual del salón: cada mesa se dibuja en su posición real (x%, y%)
+ * en vez de una cuadrícula pareja. En modo "editable" se puede arrastrar
+ * cada mesa a su lugar (con el dedo o el mouse); si no, solo se puede tocar
+ * para entrar a ella — igual que las tarjetas de la cuadrícula. */
 function PlanoSalon({ mesas, cuentas, orders, editable, onTapMesa, onMoverMesa }) {
   const containerRef = useRef(null);
   const [arrastrando, setArrastrando] = useState(null);
@@ -1340,8 +1307,8 @@ function PlanoSalon({ mesas, cuentas, orders, editable, onTapMesa, onMoverMesa }
       {mesas.map((m, idx) => {
         const cuenta = cuentas.find((c) => mesaMatch(c.mesa, m.id) && c.estado === "abierta");
         const visual = estadoVisualMesa(cuenta, cuenta ? orders.filter((o) => o.cuentaId === cuenta.id) : []);
-        const bg = cuenta ? visual.bg : "#FFFFFF";
-        const color = cuenta ? visual.color : "#1B1033";
+        const bg = cuenta ? visual.bg : "#1F1B2B";
+        const color = cuenta ? visual.color : "#DAD3EC";
         const pos = arrastrando === m.id && posLive ? posLive : posDe(m, idx);
         return (
           <button
@@ -1352,7 +1319,7 @@ function PlanoSalon({ mesas, cuentas, orders, editable, onTapMesa, onMoverMesa }
               ...styles.planoMesaTile,
               left: `${pos.x}%`, top: `${pos.y}%`,
               background: bg, color,
-              borderColor: cuenta ? bg : "#D9CCEE",
+              borderColor: cuenta ? bg : "#3A3350",
               cursor: editable ? "grab" : "pointer",
               touchAction: editable ? "none" : "auto",
               zIndex: arrastrando === m.id ? 2 : 1,
@@ -1532,7 +1499,7 @@ function CocinaView({ orders, saveOrder, mesas }) {
       )}
 
       {active.length === 0 ? (
-        <div style={styles.emptyKitchen}><Flame size={26} strokeWidth={1.5} color="#6D5BA3" /><div style={styles.emptyKitchenText}>Sin pedidos pendientes</div></div>
+        <div style={styles.emptyKitchen}><Flame size={26} strokeWidth={1.5} color="#6E6785" /><div style={styles.emptyKitchenText}>Sin pedidos pendientes</div></div>
       ) : (
         <div style={styles.rail}>
           {active.map((o) => (
@@ -1555,7 +1522,7 @@ function CocinaView({ orders, saveOrder, mesas }) {
                 {o.estado === "preparando" && (
                   <button style={styles.ticketBackBtn} onClick={() => retroceder(o.id)} title="Volver a pendiente">◀</button>
                 )}
-                <button style={{ ...styles.ticketBtn, flex: 1, background: o.estado === "pendiente" ? "#B98A2E" : "#5B7553" }} onClick={() => advance(o.id)}>
+                <button style={{ ...styles.ticketBtn, flex: 1, background: o.estado === "pendiente" ? "#D9AE5C" : "#7FAE8B" }} onClick={() => advance(o.id)}>
                   {o.estado === "pendiente" ? <><Flame size={14} /> Empezar preparación</> : <><Check size={14} /> Marcar listo</>}
                 </button>
               </div>
@@ -1608,7 +1575,7 @@ function CajaView({ menu, orders, cuentas, saveCuenta, saveOrdersMap, turnos, tu
                 const Icon = meta.icon;
                 return (
                   <div key={key} style={styles.metodoBreakdownItem}>
-                    <Icon size={13} color="#A598C8" /><span style={styles.metodoBreakdownLabel}>{meta.label}</span><span style={styles.metodoBreakdownValue}>{money(porMetodoHoy[key] || 0)}</span>
+                    <Icon size={13} color="#7F7899" /><span style={styles.metodoBreakdownLabel}>{meta.label}</span><span style={styles.metodoBreakdownValue}>{money(porMetodoHoy[key] || 0)}</span>
                   </div>
                 );
               })}
@@ -1662,7 +1629,7 @@ function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, p
     setBase("");
   };
 
-  // Efectivo, tarjeta y transferencia recibidos en este turno.
+  // Efectivo, tarjeta y transferencia recibidos en este turno (según lo registrado en la app).
   const totalesPorMetodo = () => {
     const totales = { efectivo: turnoAbierto ? turnoAbierto.baseEfectivo : 0, tarjeta: 0, transferencia: 0 };
     if (!turnoAbierto) return totales;
@@ -1706,12 +1673,12 @@ function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, p
 
           <div style={styles.metodoResumenRow}>
             <div style={styles.metodoResumenItem}>
-              <CreditCard size={14} color="#2F6690" />
+              <CreditCard size={14} color="#7EA6D6" />
               <span style={styles.metodoResumenLabel}>Tarjeta</span>
               <span style={styles.metodoResumenValue}>{money(tarjetaEsperada)}</span>
             </div>
             <div style={styles.metodoResumenItem}>
-              <Smartphone size={14} color="#8A611A" />
+              <Smartphone size={14} color="#E0B866" />
               <span style={styles.metodoResumenLabel}>Transferencia</span>
               <span style={styles.metodoResumenValue}>{money(transferenciaEsperada)}</span>
             </div>
@@ -1737,7 +1704,7 @@ function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, p
               <div style={styles.closeConfirmText}>Cuenta el efectivo físico en caja y escríbelo aquí:</div>
               <CampoMonto placeholder="Efectivo contado" value={contado} onChange={setContado} />
               {contado !== "" && (
-                <div style={{ ...styles.diferenciaBox, background: diferencia === 0 ? "#E4EEE1" : diferencia > 0 ? "#FBEFD9" : "#FBE2DC" }}>
+                <div style={{ ...styles.diferenciaBox, background: diferencia === 0 ? "#1F3329" : diferencia > 0 ? "#3B3020" : "#3F2430" }}>
                   {diferencia === 0 ? "Cuadra exacto ✓" : diferencia > 0 ? `Sobran ${money(diferencia)}` : `Faltan ${money(Math.abs(diferencia))}`}
                 </div>
               )}
@@ -1772,7 +1739,7 @@ function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, p
             <div key={t.id} style={styles.turnoRowCol}>
               <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
                 <span style={styles.cierreDate}>{dateTimeLabel(t.aperturaTs)} → {timeLabel(t.cierreTs)}</span>
-                <span style={{ ...styles.turnoDiff, color: t.diferencia === 0 ? "#5B7553" : "#C1442D" }}>
+                <span style={{ ...styles.turnoDiff, color: t.diferencia === 0 ? "#7FAE8B" : "#D9737C" }}>
                   {t.diferencia === 0 ? "Cuadró" : t.diferencia > 0 ? `+${money(t.diferencia)}` : money(t.diferencia)}
                 </span>
               </div>
@@ -1942,8 +1909,10 @@ function RespaldosAutomaticosBox() {
   );
 }
 
-/** Junta en un solo lugar las señales de alerta (cancelaciones, descuentos,
- * descuadres de turno) para que el admin decida si algo amerita revisión. */
+/** Junta en un solo lugar las señales que ya existían regadas por la app
+ * (cancelaciones, descuentos, descuadres de turno) para que el admin no
+ * tenga que ir a buscarlas una por una — no es una acusación, es solo un
+ * resumen para que decidas tú si algo amerita una conversación. */
 function PanelSenalesAlerta({ cuentas, turnos }) {
   const [expandido, setExpandido] = useState(false);
 
@@ -1980,17 +1949,17 @@ function PanelSenalesAlerta({ cuentas, turnos }) {
   return (
     <div style={{ marginTop: 24 }}>
       <button style={styles.canceladasToggle} onClick={() => setExpandido((v) => !v)}>
-        <AlertTriangle size={13} color={hayAlertas ? "#C1442D" : "#B98A2E"} />
-        <span style={{ color: hayAlertas ? "#8A3A2B" : "#4A3F66" }}>Señales de alerta (últimos 35 días){hayAlertas ? " — hay algo que revisar" : ""}</span>
+        <AlertTriangle size={13} color={hayAlertas ? "#D9737C" : "#D9AE5C"} />
+        <span style={{ color: hayAlertas ? "#F0A3A8" : "#B9B2CC" }}>Señales de alerta (últimos 35 días){hayAlertas ? " — hay algo que revisar" : ""}</span>
         <span>{expandido ? "▲" : "▼"}</span>
       </button>
       {expandido && (
         <div style={{ marginTop: 8 }}>
           {filas.map((f) => (
-            <div key={f.nombre} style={{ ...styles.turnoRowCol, ...(f.alerta ? { background: "#FBE2DC", borderRadius: 8, padding: "8px 10px" } : {}) }}>
+            <div key={f.nombre} style={{ ...styles.turnoRowCol, ...(f.alerta ? { background: "#3F2430", borderRadius: 8, padding: "8px 10px" } : {}) }}>
               <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
                 <span style={styles.pagoRowEtiqueta}>{f.nombre}</span>
-                {f.alerta && <AlertTriangle size={13} color="#C1442D" />}
+                {f.alerta && <AlertTriangle size={13} color="#D9737C" />}
               </div>
               <div style={styles.turnoSubRow}>
                 {f.cancelaciones > 0 && <>· {f.cancelaciones} {f.cancelaciones === 1 ? "cancelación" : "cancelaciones"} ({money(f.montoCancelado)}) </>}
@@ -2010,428 +1979,813 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
   const auditLog = config.auditLog || [];
   const [nombre, setNombre] = useState("");
   const [pin, setPin] = useState("");
-  const [roles, setRoles] = useState(["mesero"]);
+  const [rolesNuevo, setRolesNuevo] = useState(["mesero"]);
   const [error, setError] = useState("");
-  const [verPin, setVerPin] = useState({});
+  const [resetId, setResetId] = useState(null);
+  const [resetPin, setResetPin] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [verLog, setVerLog] = useState(false);
+  const [pinesVisibles, setPinesVisibles] = useState({});
 
   const registrar = (accion) => ({ ts: Date.now(), accion, actor: usuarioActual.nombre });
 
-  const toggleRol = (r) => setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
+  const toggleRolNuevo = (r) => {
+    setRolesNuevo((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
+  };
 
-  const agregar = async () => {
-    if (!nombre.trim()) { setError("Escribe el nombre."); return; }
-    if (pin.length < 4) { setError("El PIN debe tener al menos 4 dígitos."); return; }
-    if (roles.length === 0) { setError("Elige al menos un rol."); return; }
+  const agregarUsuario = async () => {
+    setError("");
+    if (!nombre.trim()) { setError("Escribe un nombre."); return; }
     if (usuarios.some((u) => u.nombre.toLowerCase() === nombre.trim().toLowerCase())) { setError("Ya existe un usuario con ese nombre."); return; }
-    const nuevo = { id: uid(), nombre: nombre.trim(), pin, roles };
+    if (pin.length < 4) { setError("El PIN debe tener al menos 4 dígitos."); return; }
+    if (rolesNuevo.length === 0) { setError("Elige al menos un rol."); return; }
+    const nuevo = { id: uid(), nombre: nombre.trim(), pin, roles: rolesNuevo };
     await persistConfig({
       ...config,
       usuarios: [...usuarios, nuevo],
-      auditLog: [registrar(`Creó el usuario "${nuevo.nombre}" (${rolesLabel(nuevo)})`), ...auditLog].slice(0, 50),
+      auditLog: [registrar(`Creó el usuario "${nuevo.nombre}" (${rolesNuevo.map(rolLabel).join(" + ")})`), ...auditLog].slice(0, 50),
     });
-    setNombre(""); setPin(""); setRoles(["mesero"]); setError("");
+    setNombre(""); setPin(""); setRolesNuevo(["mesero"]);
   };
 
-  const eliminar = async (u) => {
-    const admins = usuarios.filter((x) => tieneRol(x, "admin"));
-    if (tieneRol(u, "admin") && admins.length <= 1) { setError("No puedes eliminar al único administrador."); setConfirmDeleteId(null); return; }
-    if (u.nombre === usuarioActual.nombre) { setError("No puedes eliminar tu propio usuario mientras estás dentro."); setConfirmDeleteId(null); return; }
-    await persistConfig({
-      ...config,
-      usuarios: usuarios.filter((x) => x.id !== u.id),
-      auditLog: [registrar(`Eliminó el usuario "${u.nombre}"`), ...auditLog].slice(0, 50),
-    });
-    setConfirmDeleteId(null); setError("");
-  };
-
-  const cambiarRol = async (u, rol) => {
-    const actuales = rolesDe(u);
-    const nuevos = actuales.includes(rol) ? actuales.filter((r) => r !== rol) : [...actuales, rol];
-    if (nuevos.length === 0) { setError("Cada usuario necesita al menos un rol."); return; }
-    if (actuales.includes("admin") && !nuevos.includes("admin") && usuarios.filter((x) => tieneRol(x, "admin")).length <= 1) {
-      setError("Tiene que quedar al menos un administrador."); return;
-    }
-    const lista = usuarios.map((x) => (x.id === u.id ? { ...x, roles: nuevos, rol: undefined } : x));
-    await persistConfig({ ...config, usuarios: lista, auditLog: [registrar(`Cambió los roles de "${u.nombre}" a ${nuevos.map(rolLabel).join(" + ")}`), ...auditLog].slice(0, 50) });
+  // Cada usuario puede tener varios roles a la vez (ej. Mesero + Cajero).
+  // Tocar una etiqueta la prende/apaga, en vez de reemplazar todo el rol.
+  const toggleRolUsuario = async (u, r) => {
     setError("");
+    const rolesActuales = rolesDe(u);
+    const tieneEseRol = rolesActuales.includes(r);
+    if (tieneEseRol) {
+      if (rolesActuales.length === 1) { setError("El usuario debe tener al menos un rol."); return; }
+      if (r === "admin") {
+        const admins = usuarios.filter((x) => rolesDe(x).includes("admin"));
+        if (admins.length <= 1) { setError("Debe quedar al menos un administrador."); return; }
+      }
+    }
+    const nuevosRoles = tieneEseRol ? rolesActuales.filter((x) => x !== r) : [...rolesActuales, r];
+    const next = usuarios.map((x) => (x.id === u.id ? { id: x.id, nombre: x.nombre, pin: x.pin, roles: nuevosRoles } : x));
+    const accion = tieneEseRol ? `Le quitó el rol ${rolLabel(r)} a "${u.nombre}"` : `Le agregó el rol ${rolLabel(r)} a "${u.nombre}"`;
+    await persistConfig({ ...config, usuarios: next, auditLog: [registrar(accion), ...auditLog].slice(0, 50) });
+  };
+
+  const resetearPin = async (u) => {
+    if (resetPin.length < 4) { setError("El nuevo PIN debe tener al menos 4 dígitos."); return; }
+    const next = usuarios.map((x) => (x.id === u.id ? { ...x, pin: resetPin } : x));
+    await persistConfig({ ...config, usuarios: next, auditLog: [registrar(`Restableció el PIN de "${u.nombre}"`), ...auditLog].slice(0, 50) });
+    setResetId(null); setResetPin(""); setError("");
+  };
+
+  const eliminarUsuario = async (u) => {
+    const admins = usuarios.filter((x) => rolesDe(x).includes("admin"));
+    if (tieneRol(u, "admin") && admins.length <= 1) { setError("Debe quedar al menos un administrador."); return; }
+    const next = usuarios.filter((x) => x.id !== u.id);
+    await persistConfig({ ...config, usuarios: next, auditLog: [registrar(`Eliminó al usuario "${u.nombre}"`), ...auditLog].slice(0, 50) });
+    setConfirmDeleteId(null);
+  };
+
+  const togglePinVisible = async (u) => {
+    const yaVisible = !!pinesVisibles[u.id];
+    setPinesVisibles((prev) => ({ ...prev, [u.id]: !yaVisible }));
+    if (!yaVisible) {
+      // Deja constancia de que alguien vio el PIN de este usuario
+      await persistConfig({ ...config, auditLog: [registrar(`Vio el PIN de "${u.nombre}"`), ...auditLog].slice(0, 50) });
+    }
   };
 
   return (
     <div>
-      <div style={styles.addItemCard}>
-        <input style={styles.editInput} placeholder="Nombre del nuevo usuario" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <input style={styles.editInput} type="password" inputMode="numeric" placeholder="PIN (mínimo 4 dígitos)" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {Object.keys(ROL_LABELS).map((r) => (
-            <button key={r} style={{ ...styles.catPill, ...(roles.includes(r) ? styles.catPillActive : {}) }} onClick={() => toggleRol(r)}>{rolLabel(r)}</button>
-          ))}
-        </div>
-        {error && <div style={styles.pinError}>{error}</div>}
-        <button style={styles.addItemBtn} onClick={agregar}><Plus size={15} /> Crear usuario</button>
-      </div>
-
+      <div style={styles.catLabel}>EQUIPO</div>
       {usuarios.map((u) => (
-        <div key={u.id} style={styles.turnoRowCol}>
-          <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
-            <span style={styles.pagoRowEtiqueta}><UserCircle2 size={14} style={{ verticalAlign: -2 }} /> {u.nombre}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <button style={styles.iconBtn} onClick={() => setVerPin((v) => ({ ...v, [u.id]: !v[u.id] }))} title="Ver PIN">
-                {verPin[u.id] ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-              <span style={styles.cierreDate}>{verPin[u.id] ? u.pin : "••••"}</span>
-              {confirmDeleteId === u.id ? (
+        <div key={u.id} style={styles.usuarioRow}>
+          <div style={styles.usuarioRowLeft}>
+            <UserCircle2 size={16} color="#9A93B0" />
+            <span style={styles.pagoRowEtiqueta}>{u.nombre}</span>
+            <span style={styles.rolBadge}>{rolesLabel(u)}</span>
+          </div>
+
+          <div style={styles.pinVisorRow}>
+            <button style={styles.pinVisorBtn} onClick={() => togglePinVisible(u)}>
+              {pinesVisibles[u.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+              {pinesVisibles[u.id] ? <span style={styles.pinVisorValue}>{u.pin}</span> : "mostrar PIN"}
+            </button>
+          </div>
+
+          <div style={styles.usuarioRowActions}>
+            <div style={styles.rolPillsRowSmall}>
+              <button style={{ ...styles.rolPillSmall, ...(tieneRol(u, "mesero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolUsuario(u, "mesero")}>Mesero</button>
+              <button style={{ ...styles.rolPillSmall, ...(tieneRol(u, "cajero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolUsuario(u, "cajero")}>Cajero</button>
+              <button style={{ ...styles.rolPillSmall, ...(tieneRol(u, "admin") ? styles.rolPillActive : {}) }} onClick={() => toggleRolUsuario(u, "admin")}>Admin</button>
+            </div>
+            <button style={styles.inlineLink} onClick={() => { setResetId(resetId === u.id ? null : u.id); setResetPin(""); setError(""); }}>PIN nuevo</button>
+            {u.nombre !== usuarioActual.nombre && (
+              confirmDeleteId === u.id ? (
                 <>
-                  <button style={styles.confirmYes} onClick={() => eliminar(u)}>Sí</button>
+                  <button style={styles.confirmYes} onClick={() => eliminarUsuario(u)}>Sí</button>
                   <button style={styles.confirmNo} onClick={() => setConfirmDeleteId(null)}>No</button>
                 </>
               ) : (
-                <button style={styles.deleteBtn} onClick={() => setConfirmDeleteId(u.id)}><Trash2 size={14} /></button>
-              )}
+                <button style={{ ...styles.inlineLink, color: "#D9737C" }} onClick={() => setConfirmDeleteId(u.id)}>eliminar</button>
+              )
+            )}
+          </div>
+          {resetId === u.id && (
+            <div style={styles.resetPinRow}>
+              <input style={styles.editInput} type="password" inputMode="numeric" placeholder="Nuevo PIN para este usuario" value={resetPin} onChange={(e) => setResetPin(e.target.value.replace(/\D/g, ""))} />
+              <button style={styles.addItemBtn} onClick={() => resetearPin(u)}><KeyRound size={14} /> Guardar</button>
             </div>
-          </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-            {Object.keys(ROL_LABELS).map((r) => (
-              <button key={r} style={{ ...styles.catPill, padding: "4px 10px", fontSize: 11, ...(tieneRol(u, r) ? styles.catPillActive : {}) }} onClick={() => cambiarRol(u, r)}>{rolLabel(r)}</button>
-            ))}
-          </div>
+          )}
         </div>
       ))}
+      {usuarios.length === 0 && <div style={styles.cajaEmptyText}>Todavía no has creado ningún usuario.</div>}
 
-      <button style={{ ...styles.canceladasToggle, marginTop: 14 }} onClick={() => setVerLog((v) => !v)}>
-        <Lock size={13} /> <span>Registro de seguridad</span> <span>{verLog ? "▲" : "▼"}</span>
-      </button>
-      {verLog && (
-        <div style={{ marginTop: 8 }}>
-          {auditLog.length === 0 && <div style={styles.cajaEmptyText}>Sin movimientos todavía.</div>}
-          {auditLog.map((a, i) => (
-            <div key={i} style={styles.turnoRowCol}>
-              <div style={styles.turnoSubRow}>{dateTimeLabel(a.ts)} · {a.actor}</div>
-              <div style={{ fontSize: 13 }}>{a.accion}</div>
+      <div style={{ ...styles.catLabel, marginTop: 16 }}>AGREGAR USUARIO</div>
+      <div style={styles.turnoBox}>
+        <div style={styles.closeConfirmText}>Solo tú, como administrador, puedes crear usuarios — y son los únicos que podrán entrar a la app. Puedes marcar más de un rol para la misma persona (ej. Mesero + Cajero).</div>
+        <input style={styles.editInput} placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+        <input style={styles.editInput} type="password" inputMode="numeric" placeholder="PIN (mínimo 4 dígitos)" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
+        <div style={styles.rolPillsRow}>
+          <button style={{ ...styles.rolPill, ...(rolesNuevo.includes("mesero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolNuevo("mesero")}>Mesero</button>
+          <button style={{ ...styles.rolPill, ...(rolesNuevo.includes("cajero") ? styles.rolPillActive : {}) }} onClick={() => toggleRolNuevo("cajero")}>Cajero</button>
+          <button style={{ ...styles.rolPill, ...(rolesNuevo.includes("admin") ? styles.rolPillActive : {}) }} onClick={() => toggleRolNuevo("admin")}>Admin</button>
+        </div>
+        {error && <div style={styles.pinError}>{error}</div>}
+        <button style={styles.addItemBtn} onClick={agregarUsuario}><Plus size={15} /> Agregar usuario</button>
+      </div>
+
+      {auditLog.length > 0 && (
+        <>
+          <div style={{ ...styles.catLabel, marginTop: 16 }}>REGISTRO DE SEGURIDAD</div>
+          {auditLog.map((r, i) => (
+            <div key={i} style={styles.turnoRow}>
+              <span style={styles.cierreDate}>{dateTimeLabel(r.ts)}</span>
+              <span style={styles.auditText}>{r.actor}: {r.accion}</span>
             </div>
           ))}
-        </div>
+        </>
       )}
     </div>
   );
 }
 
-/* ---------------- Campo de monto con separador de miles ---------------- */
-
+/** Campo para escribir montos en pesos. A diferencia de un <input type="number">,
+ * SÍ entiende el punto como separador de miles (como se escribe en Colombia:
+ * "50.000") — solo guarda los dígitos por dentro y siempre muestra el número
+ * formateado, así que nunca se puede escribir un monto ambiguo o mal leído. */
 function CampoMonto({ value, onChange, placeholder, style, autoFocus }) {
-  const mostrado = value ? Number(value).toLocaleString("es-CO") : "";
+  const digitos = (value || "").toString().replace(/\D/g, "");
+  const mostrado = digitos ? Number(digitos).toLocaleString("es-CO") : "";
   return (
     <input
+      autoFocus={autoFocus}
       style={style || styles.editInput}
+      type="text"
       inputMode="numeric"
       placeholder={placeholder}
-      autoFocus={autoFocus}
       value={mostrado}
       onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
     />
   );
 }
 
+/** Banner discreto para activar notificaciones del sistema — se puede
+ * descartar, y no vuelve a aparecer en esta sesión si ya se descartó o si
+ * el navegador no las soporta. */
 function AvisoActivarNotificaciones() {
   const soportado = typeof window !== "undefined" && "Notification" in window;
-  const [permiso, setPermiso] = useState(soportado ? Notification.permission : "denied");
-  if (!soportado || permiso !== "default") return null;
-  const activar = async () => {
-    try { setPermiso(await Notification.requestPermission()); } catch (e) { setPermiso("denied"); }
-  };
+  const [permiso, setPermiso] = useState(soportado ? Notification.permission : "unsupported");
+  const [descartado, setDescartado] = useState(false);
+
+  if (!soportado || permiso !== "default" || descartado) return null;
+
   return (
-    <button style={styles.avisoNotifBtn} onClick={activar}>
-      <Volume2 size={14} /> Toca aquí para activar los avisos del navegador
-    </button>
+    <div style={styles.avisoNotifBanner}>
+      <span>Activa las notificaciones para enterarte aunque cambies de pantalla (no llegan con el celular bloqueado).</span>
+      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <button style={styles.avisoNotifBtn} onClick={() => Notification.requestPermission().then(setPermiso)}>Activar</button>
+        <button style={styles.avisoNotifCerrar} onClick={() => setDescartado(true)}>✕</button>
+      </div>
+    </div>
   );
 }
 
-/* ---------------- Tarjeta de cuenta (cobro) ---------------- */
+function MetodoPills({ selected, onSelect }) {
+  return (
+    <div style={styles.metodoPillsRow}>
+      {Object.entries(METODO_META).map(([key, meta]) => {
+        const Icon = meta.icon;
+        const isSel = selected === key;
+        return (
+          <button key={key} style={{ ...styles.metodoPill, ...(isSel ? { background: meta.color, color: "#16131D", border: `1px solid ${meta.color}` } : {}) }} onClick={() => onSelect(key)}>
+            <Icon size={14} /> {meta.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function MesaCuentaCard({ cuenta, orders, saveCuenta, saveOrdersMap, turnoAbierto, usuarioActual, mesas, expanded, onToggle }) {
-  const esAdmin = tieneRol(usuarioActual, "admin");
-  const [metodo, setMetodo] = useState("efectivo");
-  const [modo, setModo] = useState("completa");
-  const [seleccion, setSeleccion] = useState({});
-  const [descInput, setDescInput] = useState("");
-  const [confirmCancel, setConfirmCancel] = useState(false);
-  const [procesando, setProcesando] = useState(false);
-
   const subtotal = cuentaSubtotal(orders, cuenta.id);
-  const pct = (cuenta.propina && cuenta.propina.pct) || 0;
-  const propinaMonto = Math.round((subtotal * pct) / 100);
-  const descuento = (cuenta.descuento && cuenta.descuento.monto) || 0;
-  const granTotal = Math.max(0, subtotal - descuento + propinaMonto);
-  const pagado = pagosTotal(cuenta);
-  const restante = Math.max(0, granTotal - pagado);
-  const items = itemsAgregados(orders, cuenta.id);
-  const asignada = qtyAsignadaPorProducto(cuenta);
-  const hayPagos = pagosDe(cuenta).length > 0;
-  const sinServir = cuentaOrders(orders, cuenta.id).filter((o) => o.estado !== "cancelado" && o.estado !== "servido").length;
-  const visual = estadoVisualMesa(cuenta, cuentaOrders(orders, cuenta.id));
+  const total = cuentaGranTotal(orders, cuenta);
+  const items = cuentaItemCount(orders, cuenta.id);
+  const ords = cuentaOrders(orders, cuenta.id).filter((o) => o.estado !== "cancelado");
+  const pagos = pagosDe(cuenta);
+  const cobrado = pagosTotal(cuenta);
+  const restante = Math.max(0, total - cobrado);
+  const enCurso = pagos.length > 0 && restante > 0;
 
-  const setPropina = async (p) => {
-    await saveCuenta({ ...cuenta, propina: { pct: p, monto: Math.round((subtotal * p) / 100) } });
+  const [modoLocal, setModoLocal] = useState(null);
+  const [metodoSel, setMetodoSel] = useState(null);
+  const [efectivoRecibido, setEfectivoRecibido] = useState("");
+  const [numPartes, setNumPartes] = useState(2);
+  const [cart, setCart] = useState({});
+  const [etiqueta, setEtiqueta] = useState("");
+  const [propinaCustom, setPropinaCustom] = useState("");
+  const [mostrarDescuento, setMostrarDescuento] = useState(false);
+  const [descMonto, setDescMonto] = useState("");
+  const [descMotivo, setDescMotivo] = useState("");
+  const [confirmCancelarCuenta, setConfirmCancelarCuenta] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState("");
+
+  useEffect(() => { if (!expanded) { setModoLocal(null); setMetodoSel(null); setEfectivoRecibido(""); setCart({}); setEtiqueta(""); setMostrarDescuento(false); } }, [expanded]);
+  const seleccionarMetodo = (m) => { setMetodoSel(m); setEfectivoRecibido(""); };
+
+  // Calculadora de vueltos: solo aplica cuando el método elegido es efectivo.
+  const renderVueltos = (monto) => {
+    if (metodoSel !== "efectivo") return null;
+    const recibido = parseFloat(efectivoRecibido) || 0;
+    const vueltos = recibido - monto;
+    return (
+      <div style={styles.vueltosBox}>
+        <CampoMonto placeholder={`¿Con cuánto paga? (a cobrar ${money(monto)})`} value={efectivoRecibido} onChange={setEfectivoRecibido} />
+        {efectivoRecibido !== "" && (
+          <div style={{ ...styles.diferenciaBox, background: vueltos >= 0 ? "#1F3329" : "#3F2430" }}>
+            {vueltos >= 0 ? `Total a devolver: ${money(vueltos)}` : `Faltan ${money(Math.abs(vueltos))}`}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const effectiveModo = cuenta.splitMode || modoLocal;
+
+  async function patchCuenta(patch) {
+    await saveCuenta({ ...cuenta, ...patch });
+  }
+
+  const cobrandoRef = useRef(false);
+  const [cobrando, setCobrando] = useState(false);
+  async function guardarPago(pago) {
+    if (cobrandoRef.current) return; // ya se está registrando un pago — ignora el segundo toque para no cobrar doble
+    cobrandoRef.current = true;
+    setCobrando(true);
+    try {
+      const nuevosPagos = [...pagosDe(cuenta), pago];
+      const totalPagado = nuevosPagos.reduce((s, p) => s + p.monto, 0);
+      const completo = totalPagado >= total - 1;
+      if (completo) {
+        // La mesa ya se pagó por completo — si quedó algo sin marcar "listo" o
+        // "servido" en Cocina/Mesero, lo cerramos ahora como servido (si ya se
+        // pagó es porque ya se consumió). Si no, se queda como un pedido
+        // fantasma activo para siempre, aunque ya esté cobrado.
+        const sinCerrar = cuentaOrders(orders, cuenta.id).filter((o) => o.estado === "pendiente" || o.estado === "preparando" || o.estado === "listo");
+        if (sinCerrar.length > 0) {
+          const patch = {};
+          sinCerrar.forEach((o) => { patch[o.id] = { ...o, estado: "servido" }; });
+          await saveOrdersMap(patch);
+        }
+      }
+      await saveCuenta({ ...cuenta, pagos: nuevosPagos, splitMode: effectiveModo || cuenta.splitMode || null, estado: completo ? "pagada" : "abierta", pagadaTs: completo ? Date.now() : cuenta.pagadaTs });
+      setMetodoSel(null); setEfectivoRecibido(""); setCart({}); setEtiqueta("");
+    } finally {
+      cobrandoRef.current = false;
+      setCobrando(false);
+    }
+  }
+
+  const esAdmin = tieneRol(usuarioActual, "admin");
+
+  const setPropina = async (pct) => {
+    const monto = pct === "custom" ? Math.round(parseFloat(propinaCustom) || 0) : Math.round((subtotal * pct) / 100);
+    await patchCuenta({ propina: { pct: pct === "custom" ? null : pct, monto } });
   };
   const aplicarDescuento = async () => {
-    const monto = Math.min(parseFloat(descInput) || 0, subtotal);
-    await saveCuenta({ ...cuenta, descuento: monto > 0 ? { monto, aplicadoPor: usuarioActual.nombre } : null });
-    setDescInput("");
+    if (!esAdmin) return;
+    const monto = Math.round(parseFloat(descMonto) || 0);
+    if (monto <= 0) return;
+    await patchCuenta({ descuento: { monto, motivo: descMotivo.trim() || "Sin motivo especificado", aplicadoPor: usuarioActual.nombre } });
+    setMostrarDescuento(false); setDescMonto(""); setDescMotivo("");
   };
+  const quitarDescuento = async () => { if (esAdmin) patchCuenta({ descuento: null }); };
+  const quitarPropina = async () => { if (pagos.length === 0) patchCuenta({ propina: null }); };
 
-  const registrarPago = async (monto, extra) => {
-    if (procesando) return;
-    setProcesando(true);
-    try {
-      const pago = { id: uid(), ts: Date.now(), monto, metodoPago: metodo, procesadoPor: usuarioActual.nombre, ...extra };
-      const cerrada = pagado + monto >= granTotal;
-      await saveCuenta({
-        ...cuenta,
-        propina: { pct, monto: propinaMonto },
-        pagos: [...pagosDe(cuenta), pago],
-        ...(cerrada ? { estado: "pagada", pagadaTs: Date.now() } : {}),
-      });
-      setSeleccion({});
-    } finally {
-      setProcesando(false);
-    }
-  };
-
-  const cobrarCompleta = () => registrarPago(restante, { tipo: "completa", etiqueta: hayPagos ? "Saldo restante" : "Cuenta completa" });
-
-  const montoSeleccion = items.reduce((s, it) => s + (seleccion[it.key] || 0) * it.price, 0);
-  const cobrarProductos = () => {
-    const elegidos = items.filter((it) => (seleccion[it.key] || 0) > 0).map((it) => ({ key: it.key, name: it.name, price: it.price, qty: seleccion[it.key] }));
-    if (elegidos.length === 0) return;
-    const todoAsignado = items.every((it) => (asignada[it.key] || 0) + (seleccion[it.key] || 0) >= it.qty);
-    const monto = todoAsignado ? restante : Math.min(montoSeleccion, restante);
-    registrarPago(monto, { tipo: "por_producto", etiqueta: "Por producto", items: elegidos });
-  };
-  const cambiarSel = (it, d) => {
-    const libre = it.qty - (asignada[it.key] || 0);
-    setSeleccion((prev) => ({ ...prev, [it.key]: Math.max(0, Math.min(libre, (prev[it.key] || 0) + d)) }));
+  // Al cancelar la cuenta, también hay que cancelar sus pedidos activos —
+  // si no, se quedan "pendientes" para siempre y Cocina los sigue mostrando
+  // como si nada, aunque la mesa ya no exista en Caja (pedido fantasma).
+  const cancelarPedidosDeCuenta = async () => {
+    const activos = cuentaOrders(orders, cuenta.id).filter((o) => o.estado !== "cancelado");
+    if (activos.length === 0) return;
+    const patch = {};
+    activos.forEach((o) => { patch[o.id] = { ...o, estado: "cancelado" }; });
+    await saveOrdersMap(patch);
   };
 
   const cancelarCuenta = async () => {
-    const patch = {};
-    cuentaOrders(orders, cuenta.id).forEach((o) => { patch[o.id] = { ...o, estado: "cancelado" }; });
-    if (Object.keys(patch).length > 0) await saveOrdersMap(patch);
-    await saveCuenta({ ...cuenta, estado: "cancelada", canceladaTs: Date.now(), canceladaPor: usuarioActual.nombre, montoCancelado: subtotal });
-    setConfirmCancel(false);
+    if (total > 0) {
+      if (!esAdmin) return;
+      if (!motivoCancelacion.trim()) return; // el motivo es obligatorio cuando hay dinero de por medio
+      await cancelarPedidosDeCuenta();
+      await patchCuenta({
+        estado: "cancelada", canceladaTs: Date.now(), canceladaPor: usuarioActual.nombre,
+        motivoCancelacion: motivoCancelacion.trim(), montoCancelado: total,
+      });
+    } else {
+      await cancelarPedidosDeCuenta();
+      await patchCuenta({ estado: "cancelada", canceladaTs: Date.now(), canceladaPor: usuarioActual.nombre, montoCancelado: 0 });
+    }
+    setConfirmCancelarCuenta(false); setMotivoCancelacion("");
   };
 
-  const puedeCobrar = turnoAbierto && restante > 0 && !procesando;
+  const confirmarUnico = () => { if (!metodoSel) return; guardarPago({ id: uid(), ts: Date.now(), metodoPago: metodoSel, monto: total, tipo: "unico", etiqueta: null, items: itemsAgregados(orders, cuenta.id), procesadoPor: usuarioActual.nombre }); };
+
+  const parteMonto = numPartes > 0 ? Math.round(total / numPartes) : 0;
+  const partesRegistradas = pagos.filter((p) => p.tipo === "equitativo").length;
+  const parteActual = partesRegistradas + 1;
+  const esUltimaParte = parteActual >= numPartes;
+  const montoParteActual = esUltimaParte ? total - parteMonto * (numPartes - 1) : parteMonto;
+  const confirmarParte = () => { if (!metodoSel) return; guardarPago({ id: uid(), ts: Date.now(), metodoPago: metodoSel, monto: montoParteActual, tipo: "equitativo", etiqueta: `Parte ${parteActual} de ${numPartes}`, procesadoPor: usuarioActual.nombre }); };
+
+  const agregados = itemsAgregados(orders, cuenta.id);
+  const asignada = qtyAsignadaPorProducto(cuenta);
+  const pendientes = agregados.map((it) => ({ ...it, qtyPend: it.qty - (asignada[it.key] || 0) })).filter((it) => it.qtyPend > 0);
+  const cartMonto = Object.entries(cart).reduce((s, [key, qty]) => { const it = agregados.find((a) => a.key === key); return s + (it ? it.price * qty : 0); }, 0);
+  const numPersonaSugerido = pagos.filter((p) => p.tipo === "por_producto").length + 1;
+
+  const addToCart = (key, d) => {
+    setCart((prev) => {
+      const it = agregados.find((a) => a.key === key);
+      if (!it) return prev;
+      const pend = it.qty - (asignada[key] || 0);
+      const cur = prev[key] || 0;
+      const next = Math.max(0, Math.min(pend, cur + d));
+      const copy = { ...prev, [key]: next };
+      if (next === 0) delete copy[key];
+      return copy;
+    });
+  };
+  const confirmarProducto = () => {
+    if (!metodoSel || Object.keys(cart).length === 0) return;
+    const itemsSel = Object.entries(cart)
+      .map(([key, qty]) => { const it = agregados.find((a) => a.key === key); return it ? { key, name: it.name, price: it.price, qty } : null; })
+      .filter(Boolean);
+    if (itemsSel.length === 0) return;
+    const montoReal = itemsSel.reduce((s, it) => s + it.price * it.qty, 0);
+    guardarPago({ id: uid(), ts: Date.now(), metodoPago: metodoSel, monto: montoReal, tipo: "por_producto", etiqueta: etiqueta.trim() || `Persona ${numPersonaSugerido}`, items: itemsSel, procesadoPor: usuarioActual.nombre });
+  };
+  const cobrarResto = () => {
+    if (!metodoSel || restante <= 0) return;
+    const itemsSel = pendientes.map((it) => ({ key: it.key, name: it.name, price: it.price, qty: it.qtyPend }));
+    guardarPago({ id: uid(), ts: Date.now(), metodoPago: metodoSel, monto: restante, tipo: "por_producto", etiqueta: etiqueta.trim() || `Persona ${numPersonaSugerido} (resto)`, items: itemsSel, procesadoPor: usuarioActual.nombre });
+  };
 
   return (
-    <div style={styles.cuentaCard}>
-      <button style={styles.cuentaHead} onClick={onToggle}>
-        <div style={{ textAlign: "left" }}>
-          <div style={styles.cuentaMesa}>{mesaNombre(mesas, cuenta.mesa)}</div>
-          <div style={styles.cuentaSub}>{cuenta.mesero || "—"} · desde {timeLabel(cuenta.ts)} · {cuentaItemCount(orders, cuenta.id)} ítems</div>
+    <div style={styles.mesaCuentaCard}>
+      <button style={styles.mesaCuentaHead} onClick={onToggle}>
+        <div style={styles.mesaCuentaLeft}>
+          <span style={styles.mesaCuentaNum}>{mesaNombre(mesas, cuenta.mesa)}</span>
+          <span style={styles.mesaCuentaSince}>Abierta desde {dateTimeLabel(cuenta.ts)}{cuenta.mesero ? ` · ${cuenta.mesero}` : ""}</span>
+          {enCurso && <span style={styles.enCursoTag}>Cobro en curso · {money(cobrado)} de {money(total)}</span>}
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={styles.cuentaTotal}>{money(granTotal)}</div>
-          <span style={{ ...styles.mesaCardTag, background: visual.bg, color: visual.color }}>{visual.tag}</span>
-        </div>
+        <div style={styles.mesaCuentaRight}><span style={styles.mesaCuentaItems}>{items} ítems</span><span style={styles.mesaCuentaTotal}>{money(total)}</span></div>
       </button>
 
       {expanded && (
-        <div style={styles.cuentaBody}>
-          {items.length === 0 && <div style={styles.cajaEmptyText}>Esta cuenta no tiene productos.</div>}
-          {items.map((it) => (
-            <div key={it.key} style={styles.cuentaLinea}>
-              <span>{it.qty}× {it.name}</span>
-              <span>{money(it.qty * it.price)}</span>
+        <div style={styles.mesaCuentaBody}>
+          {ords.slice().sort((a, b) => a.ts - b.ts).map((o) => (
+            <div key={o.id} style={styles.mesaCuentaOrderRow}>
+              <span style={styles.mesaCuentaOrderTime}>{timeLabel(o.ts)}</span>
+              <span style={styles.mesaCuentaOrderItems}>{o.items.map((it) => `${it.qty}× ${it.name}${it.nota ? ` (${it.nota})` : ""}`).join(", ")}</span>
+              <span style={styles.mesaCuentaOrderTotal}>{money(orderTotal(o))}</span>
             </div>
           ))}
-          {sinServir > 0 && <div style={styles.warnBanner}><AlertTriangle size={14} /> {sinServir} {sinServir === 1 ? "pedido" : "pedidos"} aún sin servir.</div>}
 
-          <div style={styles.cuentaLinea}><span>Subtotal</span><span>{money(subtotal)}</span></div>
-          {descuento > 0 && <div style={styles.cuentaLinea}><span>Descuento ({cuenta.descuento.aplicadoPor})</span><span>-{money(descuento)}</span></div>}
-
-          <div style={styles.catLabel}>PROPINA</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {PROPINA_OPCIONES.map((p) => (
-              <button key={p} disabled={hayPagos} style={{ ...styles.catPill, ...(pct === p ? styles.catPillActive : {}), opacity: hayPagos ? 0.5 : 1 }} onClick={() => setPropina(p)}>
-                {p === 0 ? "Sin propina" : `${p}%`}
-              </button>
-            ))}
+          <div style={styles.subtotalRow}>
+            <span>Subtotal</span><span>{money(subtotal)}</span>
           </div>
-          {propinaMonto > 0 && <div style={styles.cuentaLinea}><span>Propina</span><span>{money(propinaMonto)}</span></div>}
-
-          {esAdmin && !hayPagos && (
-            <>
-              <div style={styles.catLabel}>DESCUENTO (SOLO ADMIN)</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <CampoMonto style={{ ...styles.editInput, flex: 1 }} placeholder="Monto a descontar" value={descInput} onChange={setDescInput} />
-                <button style={styles.confirmYes} onClick={aplicarDescuento}><Gift size={13} /> Aplicar</button>
-              </div>
-            </>
-          )}
-
-          <div style={{ ...styles.cuentaLinea, fontWeight: 700, fontSize: 16 }}><span>Total a cobrar</span><span>{money(granTotal)}</span></div>
-
-          {hayPagos && (
-            <>
-              <div style={styles.catLabel}>PAGOS REGISTRADOS</div>
-              {pagosDe(cuenta).map((p) => (
-                <div key={p.id} style={styles.cuentaLinea}>
-                  <span style={styles.pagoRowEtiqueta}>{p.etiqueta} · {METODO_META[p.metodoPago]?.label} · {timeLabel(p.ts)}</span>
-                  <span>{money(p.monto)}</span>
+          {cuenta.descuento ? (
+            <div style={styles.subtotalRow}>
+              <span>
+                Descuento ({cuenta.descuento.motivo}{cuenta.descuento.aplicadoPor ? ` · ${cuenta.descuento.aplicadoPor}` : ""})
+                {esAdmin && <button style={styles.inlineLink} onClick={quitarDescuento}>quitar</button>}
+              </span>
+              <span style={{ color: "#D9737C" }}>−{money(cuenta.descuento.monto)}</span>
+            </div>
+          ) : pagos.length === 0 ? (
+            !esAdmin ? (
+              <div style={styles.lockedNote}><Lock size={11} /> Solo un administrador puede aplicar descuentos o cortesías.</div>
+            ) : mostrarDescuento ? (
+              <div style={styles.descuentoBox}>
+                <CampoMonto placeholder="Monto del descuento" value={descMonto} onChange={setDescMonto} />
+                <input style={{ ...styles.editInput, marginTop: 6 }} placeholder="Motivo (ej: cortesía, cliente frecuente)" value={descMotivo} onChange={(e) => setDescMotivo(e.target.value)} />
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <button style={styles.cancelEditBtn} onClick={() => setMostrarDescuento(false)}>Cancelar</button>
+                  <button style={{ ...styles.sendBtn, flex: 1 }} onClick={aplicarDescuento}><Gift size={14} /> Aplicar</button>
                 </div>
-              ))}
-              <div style={styles.cuentaLinea}><span>Falta por cobrar</span><b>{money(restante)}</b></div>
-            </>
+              </div>
+            ) : (
+              <button style={styles.inlineAddLink} onClick={() => setMostrarDescuento(true)}><Gift size={12} /> Aplicar descuento o cortesía</button>
+            )
+          ) : null}
+
+          {cuenta.propina ? (
+            <div style={styles.subtotalRow}>
+              <span>
+                Propina {cuenta.propina.pct != null ? `(${cuenta.propina.pct}%)` : ""}
+                {pagos.length === 0 && <button style={styles.inlineLink} onClick={quitarPropina}>cambiar</button>}
+              </span>
+              <span>{money(cuenta.propina.monto)}</span>
+            </div>
+          ) : pagos.length === 0 && !mostrarDescuento ? (
+            <div style={styles.propinaBox}>
+              <span style={styles.closeConfirmText}>Propina:</span>
+              <div style={styles.propinaPillsRow}>
+                {PROPINA_OPCIONES.map((p) => (
+                  <button key={p} style={styles.propinaPill} onClick={() => setPropina(p)}>{p}%</button>
+                ))}
+                <CampoMonto style={styles.propinaCustomInput} placeholder="$" value={propinaCustom} onChange={setPropinaCustom} />
+                <button style={styles.propinaCustomBtn} onClick={() => setPropina("custom")} disabled={!propinaCustom}>Ok</button>
+              </div>
+            </div>
+          ) : null}
+
+          <div style={{ ...styles.subtotalRow, ...styles.subtotalRowFinal }}><span>Total a cobrar</span><span>{money(total)}</span></div>
+
+          {total === 0 && pagos.length === 0 && (
+            <div style={styles.cerrarVaciaBox}>
+              <span style={styles.closeConfirmText}>Esta mesa no tiene nada que cobrar (sin pedidos, o se le quitó todo).</span>
+              {confirmCancelarCuenta ? (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={styles.confirmText}>¿Cerrar la mesa sin cobro?</span>
+                  <button style={styles.confirmYes} onClick={cancelarCuenta}>Sí</button>
+                  <button style={styles.confirmNo} onClick={() => setConfirmCancelarCuenta(false)}>No</button>
+                </div>
+              ) : (
+                <button style={styles.inlineAddLink} onClick={() => setConfirmCancelarCuenta(true)}><Ban size={12} /> Cerrar mesa (sin consumo)</button>
+              )}
+            </div>
           )}
 
-          {!turnoAbierto && <div style={styles.warnBanner}><AlertTriangle size={14} /> Abre el turno para poder cobrar.</div>}
+          {pagos.length > 0 && (
+            <div style={styles.pagosRegistradosBox}>
+              <div style={styles.pagosRegistradosLabel}>PAGOS REGISTRADOS</div>
+              {pagos.map((p) => {
+                const meta = METODO_META[p.metodoPago]; const Icon = meta.icon;
+                return (
+                  <div key={p.id} style={styles.pagoRow}>
+                    <Icon size={13} color={meta.color} />
+                    <div style={styles.pagoRowMid}>
+                      <span style={styles.pagoRowEtiqueta}>{p.etiqueta || "Cuenta completa"}</span>
+                      {p.tipo === "por_producto" && <span style={styles.pagoRowItems}>{p.items.map((it) => `${it.qty}× ${it.name}`).join(", ")}</span>}
+                      <span style={styles.pagoRowTime}>{timeLabel(p.ts)} · {meta.label}{p.procesadoPor ? ` · cobró ${p.procesadoPor}` : ""}</span>
+                    </div>
+                    <span style={styles.pagoRowMonto}>{money(p.monto)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-          {restante > 0 && (
-            <>
-              <div style={styles.catLabel}>MÉTODO DE PAGO</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {Object.entries(METODO_META).map(([key, meta]) => {
-                  const Icon = meta.icon;
-                  return (
-                    <button key={key} style={{ ...styles.catPill, flex: 1, justifyContent: "center", ...(metodo === key ? styles.catPillActive : {}) }} onClick={() => setMetodo(key)}>
-                      <Icon size={13} /> {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
+          {!turnoAbierto && restante > 0 && (
+            <div style={styles.warnBanner}><AlertTriangle size={14} /> Abre el turno para poder cobrar esta mesa.</div>
+          )}
 
-              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                <button style={{ ...styles.vistaMesasBtn, ...(modo === "completa" ? styles.vistaMesasBtnActive : {}) }} onClick={() => setModo("completa")}>Cobrar todo</button>
-                <button style={{ ...styles.vistaMesasBtn, ...(modo === "productos" ? styles.vistaMesasBtnActive : {}) }} onClick={() => setModo("productos")}>Dividir por producto</button>
-              </div>
-
-              {modo === "completa" ? (
-                <button style={{ ...styles.sendBtn, opacity: puedeCobrar ? 1 : 0.4 }} disabled={!puedeCobrar} onClick={cobrarCompleta}>
-                  <Check size={16} /> Cobrar {money(restante)}
-                </button>
+          {restante > 0 && turnoAbierto && (
+            <div style={styles.cobroBox}>
+              {!effectiveModo ? (
+                <>
+                  <div style={styles.closeConfirmText}>¿Cómo quieren pagar?</div>
+                  <div style={styles.modoChoiceRow}>
+                    <button style={styles.modoChoiceBtn} onClick={() => setModoLocal("unico")}><Wallet size={16} /> Pago único</button>
+                    <button style={styles.modoChoiceBtn} onClick={() => setModoLocal("igual")}><Users size={16} /> Partes iguales</button>
+                    <button style={styles.modoChoiceBtn} onClick={() => setModoLocal("producto")}><Receipt size={16} /> Por producto</button>
+                  </div>
+                </>
+              ) : effectiveModo === "unico" ? (
+                <>
+                  <div style={styles.closeConfirmText}>Cobrar {money(total)}. Elige el método de pago:</div>
+                  <MetodoPills selected={metodoSel} onSelect={seleccionarMetodo} />
+                  {renderVueltos(total)}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button style={styles.cancelEditBtn} onClick={() => setModoLocal(null)}>Volver</button>
+                    <button style={{ ...styles.sendBtn, flex: 1, opacity: metodoSel ? 1 : 0.4 }} disabled={!metodoSel} onClick={confirmarUnico}><Lock size={15} /> Confirmar cobro</button>
+                  </div>
+                </>
+              ) : effectiveModo === "igual" ? (
+                <>
+                  {partesRegistradas === 0 ? (
+                    <div style={styles.partesStepperRow}>
+                      <span style={styles.closeConfirmText}>Dividir entre:</span>
+                      <div style={styles.stepper}>
+                        <button style={styles.stepBtn} onClick={() => setNumPartes((n) => Math.max(2, n - 1))}><Minus size={14} /></button>
+                        <span style={styles.stepVal}>{numPartes}</span>
+                        <button style={{ ...styles.stepBtn, ...styles.stepBtnPlus }} onClick={() => setNumPartes((n) => Math.min(12, n + 1))}><Plus size={14} /></button>
+                      </div>
+                      <span style={styles.closeConfirmText}>personas</span>
+                    </div>
+                  ) : (
+                    <div style={styles.closeConfirmText}>Dividido en {numPartes} partes de {money(parteMonto)} cada una.</div>
+                  )}
+                  <div style={styles.closeConfirmText}>Parte {parteActual} de {numPartes} — {money(montoParteActual)}. Método de pago:</div>
+                  <MetodoPills selected={metodoSel} onSelect={seleccionarMetodo} />
+                  {renderVueltos(montoParteActual)}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {partesRegistradas === 0 && <button style={styles.cancelEditBtn} onClick={() => setModoLocal(null)}>Volver</button>}
+                    <button style={{ ...styles.sendBtn, flex: 1, opacity: metodoSel ? 1 : 0.4 }} disabled={!metodoSel} onClick={confirmarParte}><Check size={15} /> Registrar parte {parteActual}</button>
+                  </div>
+                </>
               ) : (
                 <>
-                  {items.map((it) => {
-                    const libre = it.qty - (asignada[it.key] || 0);
-                    if (libre <= 0) return null;
-                    return (
-                      <div key={it.key} style={styles.menuRow}>
-                        <div>
-                          <div style={styles.menuItemName}>{it.name}</div>
-                          <div style={styles.menuItemPrice}>{money(it.price)} · quedan {libre}</div>
-                        </div>
-                        <div style={styles.stepper}>
-                          <button style={styles.stepBtn} onClick={() => cambiarSel(it, -1)}><Minus size={14} /></button>
-                          <span style={styles.stepVal}>{seleccion[it.key] || 0}</span>
-                          <button style={{ ...styles.stepBtn, ...styles.stepBtnPlus }} onClick={() => cambiarSel(it, 1)}><Plus size={14} /></button>
-                        </div>
+                  <div style={styles.closeConfirmText}>Toca los productos de esta persona:</div>
+                  {pendientes.map((it) => (
+                    <div key={it.key} style={styles.productoSplitRow}>
+                      <div><div style={styles.menuItemName}>{it.name}</div><div style={styles.menuItemPrice}>{money(it.price)} · quedan {it.qtyPend}</div></div>
+                      <div style={styles.stepper}>
+                        <button style={styles.stepBtn} onClick={() => addToCart(it.key, -1)}><Minus size={14} /></button>
+                        <span style={styles.stepVal}>{cart[it.key] || 0}</span>
+                        <button style={{ ...styles.stepBtn, ...styles.stepBtnPlus }} onClick={() => addToCart(it.key, 1)}><Plus size={14} /></button>
                       </div>
-                    );
-                  })}
-                  <button style={{ ...styles.sendBtn, opacity: puedeCobrar && montoSeleccion > 0 ? 1 : 0.4 }} disabled={!puedeCobrar || montoSeleccion === 0} onClick={cobrarProductos}>
-                    <Check size={16} /> Cobrar selección ({money(montoSeleccion)})
-                  </button>
+                    </div>
+                  ))}
+                  <input style={styles.editInput} placeholder={`Nombre de la persona (opcional, ej. "Persona ${numPersonaSugerido}")`} value={etiqueta} onChange={(e) => setEtiqueta(e.target.value)} />
+                  <div style={styles.closeConfirmText}>Subtotal de esta persona: <b>{money(cartMonto)}</b></div>
+                  <MetodoPills selected={metodoSel} onSelect={seleccionarMetodo} />
+                  {renderVueltos(cartMonto)}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {pagos.length === 0 && <button style={styles.cancelEditBtn} onClick={() => setModoLocal(null)}>Volver</button>}
+                    <button style={{ ...styles.sendBtn, flex: 1, opacity: metodoSel && cartMonto > 0 ? 1 : 0.4 }} disabled={!metodoSel || cartMonto === 0} onClick={confirmarProducto}><Check size={15} /> Registrar pago — {money(cartMonto)}</button>
+                  </div>
+                  {Object.keys(cart).length === 0 && (
+                    <button style={{ ...styles.repeatBtn, margin: 0, opacity: metodoSel ? 1 : 0.5 }} disabled={!metodoSel} onClick={cobrarResto}>Cobrar todo lo que queda — {money(restante)}</button>
+                  )}
                 </>
               )}
-            </>
+            </div>
           )}
 
-          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-            <button style={styles.cancelEditBtn} onClick={() => window.print()}>Imprimir cuenta</button>
-            {!hayPagos && (
-              confirmCancel ? (
-                <>
-                  <button style={styles.confirmYes} onClick={cancelarCuenta}>Sí, cancelar cuenta</button>
-                  <button style={styles.confirmNo} onClick={() => setConfirmCancel(false)}>No</button>
-                </>
+          {esAdmin && total > 0 && (
+            <div style={styles.cancelarCuentaBox}>
+              {confirmCancelarCuenta ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={styles.closeConfirmText}>
+                    Vas a cancelar {money(total)} de esta mesa <b>sin registrar ningún cobro</b>. Esto queda guardado con tu nombre en el historial. Escribe el motivo (obligatorio):
+                  </span>
+                  <input
+                    autoFocus style={styles.editInput} placeholder="Ej: cliente se fue sin pagar, error al abrir la mesa…"
+                    value={motivoCancelacion} onChange={(e) => setMotivoCancelacion(e.target.value)}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button style={styles.cancelEditBtn} onClick={() => { setConfirmCancelarCuenta(false); setMotivoCancelacion(""); }}>Volver</button>
+                    <button
+                      style={{ ...styles.sendBtn, flex: 1, background: "#D9737C", opacity: motivoCancelacion.trim() ? 1 : 0.4 }}
+                      disabled={!motivoCancelacion.trim()} onClick={cancelarCuenta}
+                    >
+                      <Ban size={14} /> Confirmar cancelación
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <button style={{ ...styles.cancelEditBtn, color: "#C1442D" }} onClick={() => setConfirmCancel(true)}><Ban size={13} /> Cancelar cuenta</button>
-              )
-            )}
-          </div>
-
-          <div className="solo-imprimir" style={{ fontFamily: "monospace", fontSize: 12 }}>
-            <div style={{ textAlign: "center", fontWeight: 700 }}>{mesaNombre(mesas, cuenta.mesa)}</div>
-            {items.map((it) => <div key={it.key}>{it.qty}× {it.name} — {money(it.qty * it.price)}</div>)}
-            <div>Subtotal: {money(subtotal)}</div>
-            {descuento > 0 && <div>Descuento: -{money(descuento)}</div>}
-            {propinaMonto > 0 && <div>Propina: {money(propinaMonto)}</div>}
-            <div style={{ fontWeight: 700 }}>TOTAL: {money(granTotal)}</div>
-          </div>
+                <button style={{ ...styles.inlineLink, color: "#D9737C" }} onClick={() => setConfirmCancelarCuenta(true)}>Cancelar esta cuenta sin cobrar</button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-/* ---------------- Historial (admin) ---------------- */
+/* ---------------- Historial ---------------- */
 
 function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCompleto, cargandoHistorial, cargarHistorialCompleto, config, mesas, usuarioActual }) {
-  const [abiertos, setAbiertos] = useState({});
-  const toggle = (k) => setAbiertos((prev) => ({ ...prev, [k]: !prev[k] }));
+  const [view, setView] = useState("years");
+  const [year, setYear] = useState(null);
+  const [month, setMonth] = useState(null);
+  const [day, setDay] = useState(null);
+  const [expandedCuentaId, setExpandedCuentaId] = useState(null);
+  const [verCanceladas, setVerCanceladas] = useState(false);
+  const [verTodasCanceladas, setVerTodasCanceladas] = useState(false);
+  const esAdmin = tieneRol(usuarioActual, "admin");
+  const cuentas = cuentasParaHistorial;
+  const orders = ordersParaHistorial;
 
-  useEffect(() => { cargarHistorialCompleto(); }, []);
+  // Apenas se entra a Historial, se pide el historial completo (una sola vez,
+  // no en vivo) — antes de eso solo se ve lo de los últimos días.
+  useEffect(() => { cargarHistorialCompleto(); }, [cargarHistorialCompleto]);
 
-  const { days, months, years } = buildHistory(cuentasParaHistorial, ordersParaHistorial);
-  const yearList = Object.values(years).sort((a, b) => b.key.localeCompare(a.key));
+  const { days, months, years } = buildHistory(cuentas, orders);
+  const CANCELADAS_RECIENTES_DIAS = 30;
+  const cortoCanceladasRecientes = Date.now() - CANCELADAS_RECIENTES_DIAS * 24 * 60 * 60 * 1000;
+  const todasCanceladas = cuentas
+    .filter((c) => c.estado === "cancelada" && (c.montoCancelado || 0) > 0)
+    .sort((a, b) => b.canceladaTs - a.canceladaTs);
+  const canceladasRecientes = todasCanceladas.filter((c) => c.canceladaTs >= cortoCanceladasRecientes);
+  const canceladasAntiguas = todasCanceladas.filter((c) => c.canceladaTs < cortoCanceladasRecientes);
+  const canceladas = verTodasCanceladas ? todasCanceladas : canceladasRecientes;
 
+  const AvisoCargando = !historialCompleto && (
+    <div style={styles.cargandoHistBox}>
+      <span>{cargandoHistorial ? "Cargando historial completo…" : "Mostrando solo los últimos días — cargando el resto…"}</span>
+    </div>
+  );
+
+  const PanelCanceladas = esAdmin && todasCanceladas.length > 0 && (
+    <div style={styles.canceladasBox}>
+      <button style={styles.canceladasToggle} onClick={() => setVerCanceladas((v) => !v)}>
+        <Ban size={13} color="#D9737C" />
+        <span>
+          {canceladas.length} {canceladas.length === 1 ? "cuenta cancelada" : "cuentas canceladas"} sin cobrar
+          {!verTodasCanceladas ? ` (últimos ${CANCELADAS_RECIENTES_DIAS} días)` : ""} — {money(canceladas.reduce((s, c) => s + (c.montoCancelado || 0), 0))} en total
+        </span>
+        <span>{verCanceladas ? "▲" : "▼"}</span>
+      </button>
+      {verCanceladas && (
+        <div style={{ marginTop: 6 }}>
+          {canceladas.length === 0 && (
+            <div style={styles.canceladaMotivo}>Ninguna cancelación en los últimos {CANCELADAS_RECIENTES_DIAS} días.</div>
+          )}
+          {canceladas.map((c) => (
+            <div key={c.id} style={styles.canceladaRow}>
+              <div style={styles.rowBetween}>
+                <span style={styles.cierreDate}>{dateTimeLabel(c.canceladaTs)} · {mesaNombre(mesas, c.mesa)}{c.mesero ? ` · abrió ${c.mesero}` : ""}</span>
+                <span style={{ ...styles.cierreTotal, color: "#D9737C" }}>{money(c.montoCancelado)}</span>
+              </div>
+              <div style={styles.canceladaMotivo}>Canceló <b>{c.canceladaPor}</b>: "{c.motivoCancelacion}"</div>
+            </div>
+          ))}
+          {!verTodasCanceladas && canceladasAntiguas.length > 0 && (
+            <button style={styles.inlineAddLink} onClick={() => setVerTodasCanceladas(true)}>
+              Ver también {canceladasAntiguas.length} {canceladasAntiguas.length === 1 ? "cancelación anterior" : "cancelaciones anteriores"} →
+            </button>
+          )}
+          {verTodasCanceladas && canceladasAntiguas.length > 0 && (
+            <button style={styles.inlineAddLink} onClick={() => setVerTodasCanceladas(false)}>Ver solo las recientes</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  if (Object.keys(days).length === 0) {
+    return (
+      <div style={styles.menuScroll}>
+        {AvisoCargando}
+        {PanelCanceladas}
+        <div style={styles.cajaEmptyText}>Todavía no hay cuentas cobradas. Cuando cobres una mesa, va a aparecer aquí organizada por día, con fecha y hora exactas.</div>
+      </div>
+    );
+  }
+
+  if (view === "years") {
+    const list = Object.values(years).sort((a, b) => b.key - a.key);
+    return (
+      <div style={styles.menuScroll}>
+        {AvisoCargando}
+        {PanelCanceladas}
+        <div style={styles.rowBetween}>
+          <div style={styles.catLabel}>AÑOS</div>
+          {esAdmin && <button style={styles.exportLink} onClick={() => exportarExcel(cuentas, orders, config, mesas)}><Download size={13} /> Exportar Excel</button>}
+        </div>
+        {list.length > 1 && (
+          <div style={styles.chartBox}>
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={[...list].sort((a, b) => a.key.localeCompare(b.key))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#3A3350" />
+                <XAxis dataKey="key" tick={{ fontSize: 11, fill: "#9A93B0" }} />
+                <YAxis tick={{ fontSize: 10, fill: "#9A93B0" }} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
+                <Tooltip formatter={(v) => money(v)} contentStyle={{ fontSize: 12, borderRadius: 8, backgroundColor: "#1F1B2B", border: "1px solid #3A3350", color: "#DAD3EC" }} />
+                <Bar dataKey="total" fill="#7FAE8B" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        {list.map((y) => (
+          <button key={y.key} style={styles.histRow} onClick={() => { setYear(y.key); setView("months"); }}>
+            <span style={styles.histRowTitle}>{y.key}</span>
+            <span style={styles.histRowSub}>{y.monthKeys.length} {y.monthKeys.length === 1 ? "mes" : "meses"} con ventas</span>
+            <span style={styles.histRowTotal}>{money(y.total)}</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+  if (view === "months") {
+    const list = Object.values(months).filter((m) => m.key.startsWith(year)).sort((a, b) => b.key.localeCompare(a.key));
+    return (
+      <div style={styles.menuScroll}>
+        <button style={styles.backBtn} onClick={() => setView("years")}>← Años</button>
+        <div style={{ ...styles.catLabel, marginTop: 12 }}>{year}</div>
+        {list.map((m) => {
+          const [añoMes, mesMes] = m.key.split("-");
+          const claveAñoAnterior = `${Number(añoMes) - 1}-${mesMes}`;
+          const mesAñoAnterior = months[claveAñoAnterior];
+          const delta = mesAñoAnterior && mesAñoAnterior.total > 0 ? Math.round(((m.total - mesAñoAnterior.total) / mesAñoAnterior.total) * 100) : null;
+          return (
+            <button key={m.key} style={styles.histRow} onClick={() => { setMonth(m.key); setView("days"); }}>
+              <span style={styles.histRowTitle}>{monthLabel(m.ts)}</span>
+              <span style={styles.histRowSub}>
+                {m.dayKeys.length} {m.dayKeys.length === 1 ? "día" : "días"} con ventas
+                {delta !== null && (
+                  <span style={{ color: delta >= 0 ? "#7FAE8B" : "#D9737C", fontWeight: 700 }}> · {delta >= 0 ? "+" : ""}{delta}% vs {claveAñoAnterior}</span>
+                )}
+              </span>
+              <span style={styles.histRowTotal}>{money(m.total)}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+  if (view === "days") {
+    const list = Object.values(days).filter((d) => d.key.startsWith(month)).sort((a, b) => b.key.localeCompare(a.key));
+    return (
+      <div style={styles.menuScroll}>
+        <button style={styles.backBtn} onClick={() => setView("months")}>← Meses</button>
+        <div style={{ ...styles.catLabel, marginTop: 12 }}>{list[0] ? monthLabel(list[0].ts) : ""}</div>
+        {list.map((d) => (
+          <button key={d.key} style={styles.histRow} onClick={() => { setDay(d.key); setView("day"); }}>
+            <span style={styles.histRowTitle}>{dayLabel(d.ts)}</span>
+            <span style={styles.histRowSub}>{d.cuentasCount} {d.cuentasCount === 1 ? "cuenta cobrada" : "cuentas cobradas"}</span>
+            <span style={styles.histRowTotal}>{money(d.total)}</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  const d = days[day];
+  if (!d) return null;
+  const productos = Object.entries(d.productos).sort((a, b) => b[1].subtotal - a[1].subtotal);
   return (
     <div style={styles.menuScroll}>
-      {cargandoHistorial && <div style={styles.cajaEmptyText}>Cargando historial completo…</div>}
-      {!historialCompleto && !cargandoHistorial && <div style={styles.cajaEmptyText}>Mostrando solo los últimos {VENTANA_DIAS} días.</div>}
-      {yearList.length === 0 && <div style={styles.cajaEmptyText}>Todavía no hay cuentas pagadas.</div>}
+      <button className="no-imprimir" style={styles.backBtn} onClick={() => setView("days")}>← Días</button>
+      <div style={{ marginTop: 12, marginBottom: 14, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <div style={styles.pageEyebrow}>{dayLabel(d.ts)}</div>
+          <div style={{ ...styles.cajaTotalValue, color: "#DAD3EC" }}>{money(d.total)}</div>
+        </div>
+        <button className="no-imprimir" style={styles.exportLink} onClick={() => window.print()}>🖨️ Imprimir</button>
+      </div>
 
-      {yearList.length > 0 && (
-        <button style={styles.modoChoiceBtn} onClick={() => exportarExcel(cuentasParaHistorial, ordersParaHistorial, config, mesas)}>
-          <Download size={15} /> Exportar a Excel
-        </button>
-      )}
+      <div style={styles.metodoBreakdownRowLight}>
+        {Object.entries(METODO_META).map(([key, meta]) => {
+          const Icon = meta.icon;
+          return (
+            <div key={key} style={styles.metodoBreakdownItemLight}>
+              <Icon size={13} color={meta.color} /><span style={styles.metodoBreakdownLabelLight}>{meta.label}</span><span style={styles.metodoBreakdownValueLight}>{money(d.porMetodo[key] || 0)}</span>
+            </div>
+          );
+        })}
+      </div>
 
-      {yearList.map((y) => (
-        <div key={y.key} style={{ marginTop: 12 }}>
-          <button style={styles.histHead} onClick={() => toggle(y.key)}>
-            <b>{y.key}</b><span>{money(y.total)} {abiertos[y.key] ? "▲" : "▼"}</span>
-          </button>
-          {abiertos[y.key] && y.monthKeys.slice().sort().reverse().map((mk) => {
-            const m = months[mk];
-            return (
-              <div key={mk} style={{ marginLeft: 10 }}>
-                <button style={styles.histHead} onClick={() => toggle(mk)}>
-                  <span>{monthLabel(m.ts)}</span><span>{money(m.total)} {abiertos[mk] ? "▲" : "▼"}</span>
-                </button>
-                {abiertos[mk] && m.dayKeys.slice().sort().reverse().map((dk) => {
-                  const d = days[dk];
+      <div style={{ ...styles.catLabel, marginTop: 18 }}>CUENTAS COBRADAS ESE DÍA</div>
+      {d.cuentas.slice().sort((a, b) => a.pagadaTs - b.pagadaTs).map((c) => {
+        const dividida = c.pagos && c.pagos.length > 1;
+        const isExpanded = expandedCuentaId === c.id;
+        const meta = !dividida && c.pagos && c.pagos[0] ? METODO_META[c.pagos[0].metodoPago] : null;
+        return (
+          <div key={c.id}>
+            <button style={{ ...styles.cierreRow, width: "100%", background: "transparent", border: "none", cursor: dividida ? "pointer" : "default", textAlign: "left" }} onClick={() => dividida && setExpandedCuentaId(isExpanded ? null : c.id)}>
+              <span style={styles.cierreDate}>
+                {meta && <meta.icon size={12} color={meta.color} style={{ marginRight: 5, verticalAlign: -2 }} />}
+                {mesaNombre(mesas, c.mesa)}{c.mesero ? ` · ${c.mesero}` : ""} · cobrada {timeLabel(c.pagadaTs)}
+                {dividida && <span style={styles.dividedTag}> · dividida en {c.pagos.length} pagos {isExpanded ? "▲" : "▼"}</span>}
+              </span>
+              <span style={styles.cierrePedidos}>{c.itemCount} ítems</span>
+              <span style={styles.cierreTotal}>{money(c.total)}</span>
+            </button>
+            {dividida && isExpanded && (
+              <div style={styles.pagosRegistradosBox}>
+                {c.pagos.map((p) => {
+                  const pmeta = METODO_META[p.metodoPago]; const PIcon = pmeta.icon;
                   return (
-                    <div key={dk} style={{ marginLeft: 10 }}>
-                      <button style={styles.histHead} onClick={() => toggle(dk)}>
-                        <span>{dayLabel(d.ts)}</span><span>{money(d.total)} {abiertos[dk] ? "▲" : "▼"}</span>
-                      </button>
-                      {abiertos[dk] && (
-                        <div style={styles.histDetalle}>
-                          <div style={styles.turnoSubRow}>
-                            {d.cuentasCount} {d.cuentasCount === 1 ? "cuenta" : "cuentas"} ·{" "}
-                            {Object.entries(METODO_META).map(([k, meta]) => `${meta.label} ${money(d.porMetodo[k] || 0)}`).join(" · ")}
-                          </div>
-                          {d.cuentas.sort((a, b) => a.pagadaTs - b.pagadaTs).map((c) => (
-                            <div key={c.id} style={styles.cuentaLinea}>
-                              <span>{timeLabel(c.pagadaTs)} · {mesaNombre(mesas, c.mesa)} · {c.mesero || "—"}</span>
-                              <span>{money(c.total)}</span>
-                            </div>
-                          ))}
-                          <div style={styles.catLabel}>PRODUCTOS DEL DÍA</div>
-                          {Object.entries(d.productos).sort((a, b) => b[1].subtotal - a[1].subtotal).map(([name, p]) => (
-                            <div key={name} style={styles.cuentaLinea}><span>{p.qty}× {name}</span><span>{money(p.subtotal)}</span></div>
-                          ))}
-                        </div>
-                      )}
+                    <div key={p.id} style={styles.pagoRow}>
+                      <PIcon size={13} color={pmeta.color} />
+                      <div style={styles.pagoRowMid}>
+                        <span style={styles.pagoRowEtiqueta}>{p.etiqueta || "Cuenta completa"}</span>
+                        {p.tipo === "por_producto" && <span style={styles.pagoRowItems}>{p.items.map((it) => `${it.qty}× ${it.name}`).join(", ")}</span>}
+                        <span style={styles.pagoRowTime}>{timeLabel(p.ts)} · {pmeta.label}{p.procesadoPor ? ` · cobró ${p.procesadoPor}` : ""}</span>
+                      </div>
+                      <span style={styles.pagoRowMonto}>{money(p.monto)}</span>
                     </div>
                   );
                 })}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
+        );
+      })}
+
+      <div style={{ ...styles.catLabel, marginTop: 18 }}>PRODUCTOS VENDIDOS</div>
+      {productos.map(([name, p]) => (
+        <div key={name} style={styles.cajaProductRow}><span style={styles.cajaProductQty}>{p.qty}×</span><span style={styles.cajaProductName}>{name}</span><span style={styles.cajaProductSubtotal}>{money(p.subtotal)}</span></div>
       ))}
     </div>
   );
@@ -2440,306 +2794,469 @@ function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCom
 /* ---------------- Reportes ---------------- */
 
 function ReportesView({ cuentas, orders, menu, usuarioActual }) {
-  const [rango, setRango] = useState(1);
+  const [rango, setRango] = useState("hoy");
   const esAdmin = tieneRol(usuarioActual, "admin");
 
-  const inicio = new Date();
-  inicio.setHours(0, 0, 0, 0);
-  inicio.setDate(inicio.getDate() - (rango - 1));
-  const pagadas = cuentas.filter((c) => c.estado === "pagada" && c.pagadaTs >= inicio.getTime());
+  const inicioRango = () => {
+    const d = new Date();
+    if (rango === "hoy") { d.setHours(0, 0, 0, 0); return d.getTime(); }
+    if (rango === "semana") { d.setDate(d.getDate() - 7); return d.getTime(); }
+    d.setDate(d.getDate() - 30); return d.getTime();
+  };
+  const desde = inicioRango();
+  const pagadasRango = cuentas.filter((c) => c.estado === "pagada" && c.pagadaTs >= desde);
+  const costoPorId = Object.fromEntries(menu.map((m) => [m.id, m.cost || 0]));
 
-  const total = pagadas.reduce((s, c) => s + cuentaGranTotal(orders, c), 0);
-  const ticketPromedio = pagadas.length > 0 ? total / pagadas.length : 0;
-  const propinas = pagadas.reduce((s, c) => s + ((c.propina && c.propina.monto) || 0), 0);
-  const descuentos = pagadas.reduce((s, c) => s + ((c.descuento && c.descuento.monto) || 0), 0);
+  // Tiempo promedio de cocina: de cuando se envió el pedido a cuando se marcó "listo".
+  const ordenesConTiempo = orders.filter((o) => o.ts >= desde && o.listoTs && o.estado !== "cancelado");
+  const tiempoPromedioMin = ordenesConTiempo.length > 0
+    ? Math.round(ordenesConTiempo.reduce((s, o) => s + (o.listoTs - o.ts), 0) / ordenesConTiempo.length / 60000)
+    : null;
 
-  const productos = {};
-  let costoTotal = 0;
-  let ventaProductos = 0;
-  pagadas.forEach((c) => {
-    cuentaOrders(orders, c.id).filter((o) => o.estado !== "cancelado").forEach((o) =>
-      o.items.forEach((it) => {
-        if (!productos[it.name]) productos[it.name] = { qty: 0, subtotal: 0 };
-        productos[it.name].qty += it.qty;
-        productos[it.name].subtotal += it.qty * it.price;
-        costoTotal += (it.cost || 0) * it.qty;
-        ventaProductos += it.price * it.qty;
-      })
-    );
+  const porHora = {};
+  pagadasRango.forEach((c) => { const h = new Date(c.pagadaTs).getHours(); porHora[h] = (porHora[h] || 0) + cuentaGranTotal(orders, c); });
+  const dataHora = Array.from({ length: 24 }, (_, h) => ({ hora: hourLabel(h), total: porHora[h] || 0 })).filter((d, i) => {
+    // solo mostrar el rango de horas de operación con datos, ampliado un poco
+    const conDatos = Object.keys(porHora).map(Number);
+    if (conDatos.length === 0) return i >= 6 && i <= 22;
+    return i >= Math.max(0, Math.min(...conDatos) - 1) && i <= Math.min(23, Math.max(...conDatos) + 1);
   });
-  const top = Object.entries(productos).sort((a, b) => b[1].qty - a[1].qty).slice(0, 10);
 
-  const grupos = {};
-  pagadas.forEach((c) => {
-    const k = rango === 1 ? hourLabel(new Date(c.pagadaTs).getHours()) : dayKey(c.pagadaTs).slice(5);
-    grupos[k] = (grupos[k] || 0) + cuentaGranTotal(orders, c);
+  const productoMap = {};
+  let ventaProductos = 0, costoProductos = 0, huboCostosCargados = false;
+  pagadasRango.forEach((c) => cuentaOrders(orders, c.id).filter((o) => o.estado !== "cancelado").forEach((o) => o.items.forEach((it) => {
+    if (!productoMap[it.name]) productoMap[it.name] = { qty: 0, subtotal: 0 };
+    productoMap[it.name].qty += it.qty; productoMap[it.name].subtotal += it.qty * it.price;
+    ventaProductos += it.qty * it.price;
+    // Los pedidos nuevos ya guardan su propio costo (congelado al momento de
+    // la venta). Los pedidos viejos, de antes de este cambio, no lo tienen —
+    // para esos usamos el costo actual del menú como mejor estimado posible.
+    const costoUnit = (it.cost !== undefined && it.cost !== null) ? it.cost : (costoPorId[it.id] || 0);
+    if (costoUnit > 0) huboCostosCargados = true;
+    costoProductos += it.qty * costoUnit;
+  })));
+  const topProductos = Object.entries(productoMap).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+  const margenRango = ventaProductos - costoProductos;
+  const margenPct = ventaProductos > 0 ? Math.round((margenRango / ventaProductos) * 100) : 0;
+
+  const totalRango = pagadasRango.reduce((s, c) => s + cuentaGranTotal(orders, c), 0);
+  const propinasRango = pagadasRango.reduce((s, c) => s + ((c.propina && c.propina.monto) || 0), 0);
+  const descuentosRango = pagadasRango.reduce((s, c) => s + ((c.descuento && c.descuento.monto) || 0), 0);
+  const cuentaBrutaRango = totalRango + descuentosRango - propinasRango;
+  const canceladasRango = cuentas.filter((c) => c.estado === "cancelada" && (c.montoCancelado || 0) > 0 && c.canceladaTs >= desde);
+  const totalCanceladoRango = canceladasRango.reduce((s, c) => s + (c.montoCancelado || 0), 0);
+
+  const meseroMap = {};
+  pagadasRango.forEach((c) => {
+    const nombre = c.mesero || "Sin asignar";
+    if (!meseroMap[nombre]) meseroMap[nombre] = { cuentas: 0, total: 0, propinas: 0 };
+    meseroMap[nombre].cuentas += 1;
+    meseroMap[nombre].total += cuentaGranTotal(orders, c);
+    meseroMap[nombre].propinas += (c.propina && c.propina.monto) || 0;
   });
-  const dataGrafica = Object.entries(grupos).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => ({ k, ventas: v }));
+  const meserosOrdenados = Object.entries(meseroMap).sort((a, b) => b[1].total - a[1].total);
+  const [repartirPropinas, setRepartirPropinas] = useState(false);
+  const [numPersonasPropina, setNumPersonasPropina] = useState(2);
 
   return (
     <div style={styles.menuScroll}>
-      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-        {[[1, "Hoy"], [7, "7 días"], [30, "30 días"]].map(([n, label]) => (
-          <button key={n} style={{ ...styles.vistaMesasBtn, ...(rango === n ? styles.vistaMesasBtnActive : {}) }} onClick={() => setRango(n)}>{label}</button>
-        ))}
+      <div className="no-imprimir" style={styles.cajaTabSwitch}>
+        <button style={{ ...styles.cajaTabBtn, ...(rango === "hoy" ? styles.cajaTabBtnActive : {}) }} onClick={() => setRango("hoy")}>Hoy</button>
+        <button style={{ ...styles.cajaTabBtn, ...(rango === "semana" ? styles.cajaTabBtnActive : {}) }} onClick={() => setRango("semana")}>7 días</button>
+        <button style={{ ...styles.cajaTabBtn, ...(rango === "mes" ? styles.cajaTabBtnActive : {}) }} onClick={() => setRango("mes")}>30 días</button>
+        {esAdmin && <button style={styles.exportLink} onClick={() => window.print()}>🖨️ Imprimir</button>}
+      </div>
+
+      <div className="solo-imprimir" style={styles.reportePrintHeader}>
+        <div style={styles.reportePrintTitle}>Reporte financiero — {rango === "hoy" ? "Hoy" : rango === "semana" ? "Últimos 7 días" : "Últimos 30 días"}</div>
+        <div style={styles.reportePrintSub}>Generado el {dateTimeLabel(Date.now())}</div>
       </div>
 
       <div style={styles.cajaTotalCard}>
-        <span style={styles.cajaTotalLabel}>Ventas ({pagadas.length} {pagadas.length === 1 ? "cuenta" : "cuentas"})</span>
-        <span style={styles.cajaTotalValue}>{money(total)}</span>
-        <div style={styles.metodoBreakdownRow}>
-          <div style={styles.metodoBreakdownItem}><span style={styles.metodoBreakdownLabel}>Ticket promedio</span><span style={styles.metodoBreakdownValue}>{money(ticketPromedio)}</span></div>
-          <div style={styles.metodoBreakdownItem}><span style={styles.metodoBreakdownLabel}>Propinas</span><span style={styles.metodoBreakdownValue}>{money(propinas)}</span></div>
-          <div style={styles.metodoBreakdownItem}><span style={styles.metodoBreakdownLabel}>Descuentos</span><span style={styles.metodoBreakdownValue}>{money(descuentos)}</span></div>
-        </div>
+        <span style={styles.cajaTotalLabel}>Total vendido</span>
+        <span style={styles.cajaTotalValue}>{money(totalRango)}</span>
+        <span style={styles.turnoEsperadoLabel}>{pagadasRango.length} cuentas · {money(propinasRango)} en propinas</span>
+        {esAdmin && huboCostosCargados && (
+          <div style={styles.margenRow}>
+            <span>Margen estimado: <b>{money(margenRango)}</b> ({margenPct}%)</span>
+          </div>
+        )}
+      </div>
+      {esAdmin && !huboCostosCargados && ventaProductos > 0 && (
+        <div style={styles.cajaEmptyText}>Agrégale costo a tus productos en Menú para ver aquí el margen de este período.</div>
+      )}
+
+      {esAdmin && (
+        <>
+          <div style={{ ...styles.catLabel, marginTop: 16 }}>RESUMEN FINANCIERO</div>
+          <div style={styles.turnoBox}>
+            <div style={styles.subtotalRow}><span>Consumo bruto (antes de descuentos)</span><span>{money(cuentaBrutaRango)}</span></div>
+            <div style={styles.subtotalRow}><span>Descuentos y cortesías aplicados</span><span style={{ color: "#D9737C" }}>−{money(descuentosRango)}</span></div>
+            <div style={styles.subtotalRow}><span>Propinas</span><span>+{money(propinasRango)}</span></div>
+            <div style={{ ...styles.subtotalRow, ...styles.subtotalRowFinal }}><span>Total cobrado</span><span>{money(totalRango)}</span></div>
+            {huboCostosCargados && (
+              <>
+                <div style={styles.subtotalRow}><span>Costo de productos vendidos</span><span>−{money(costoProductos)}</span></div>
+                <div style={{ ...styles.subtotalRow, ...styles.subtotalRowFinal }}><span>Margen (utilidad bruta)</span><span>{money(margenRango)} ({margenPct}%)</span></div>
+              </>
+            )}
+            <div style={styles.subtotalRow}>
+              <span style={{ color: canceladasRango.length > 0 ? "#D9737C" : undefined }}>Cuentas canceladas sin cobrar ({canceladasRango.length})</span>
+              <span style={{ color: canceladasRango.length > 0 ? "#D9737C" : undefined }}>{money(totalCanceladoRango)}</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div style={styles.catLabel}>PROPINAS DEL PERÍODO</div>
+      <div style={styles.turnoBox}>
+        <div style={styles.closeConfirmText}>{money(propinasRango)} en propinas en este rango.</div>
+        {!repartirPropinas ? (
+          <button style={styles.inlineAddLink} onClick={() => setRepartirPropinas(true)}>Repartir entre el equipo →</button>
+        ) : (
+          <>
+            <div style={styles.partesStepperRow}>
+              <span style={styles.closeConfirmText}>Dividir entre:</span>
+              <div style={styles.stepper}>
+                <button style={styles.stepBtn} onClick={() => setNumPersonasPropina((n) => Math.max(1, n - 1))}><Minus size={14} /></button>
+                <span style={styles.stepVal}>{numPersonasPropina}</span>
+                <button style={{ ...styles.stepBtn, ...styles.stepBtnPlus }} onClick={() => setNumPersonasPropina((n) => Math.min(20, n + 1))}><Plus size={14} /></button>
+              </div>
+              <span style={styles.closeConfirmText}>personas</span>
+            </div>
+            <div style={styles.diferenciaBox}>Cada uno: <b>{money(propinasRango / numPersonasPropina)}</b></div>
+          </>
+        )}
       </div>
 
-      {esAdmin && costoTotal > 0 && (
-        <div style={styles.turnoBox}>
-          <div style={styles.catLabel}>MARGEN ESTIMADO</div>
-          <div style={styles.cuentaLinea}><span>Ventas de productos</span><span>{money(ventaProductos)}</span></div>
-          <div style={styles.cuentaLinea}><span>Costo de producción</span><span>{money(costoTotal)}</span></div>
-          <div style={{ ...styles.cuentaLinea, fontWeight: 700 }}>
-            <span>Margen</span>
-            <span>{money(ventaProductos - costoTotal)} ({ventaProductos > 0 ? Math.round(((ventaProductos - costoTotal) / ventaProductos) * 100) : 0}%)</span>
-          </div>
+      {tiempoPromedioMin !== null && (
+        <div style={styles.tiempoCocinaBox}>
+          <Clock size={14} color="#D9AE5C" />
+          <span>Tiempo promedio de cocina: <b>{tiempoPromedioMin} min</b> ({ordenesConTiempo.length} pedidos)</span>
         </div>
       )}
 
-      {dataGrafica.length > 0 ? (
-        <div style={{ width: "100%", height: 200, marginTop: 14 }}>
-          <div style={styles.catLabel}>{rango === 1 ? "VENTAS POR HORA" : "VENTAS POR DÍA"}</div>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dataGrafica}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#D9CCEE" />
-              <XAxis dataKey="k" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} width={48} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
-              <Tooltip formatter={(v) => money(v)} />
-              <Bar dataKey="ventas" fill="#4A2C8F" radius={[4, 4, 0, 0]} />
+      <div style={styles.catLabel}>VENTAS POR HORA</div>
+      <div style={styles.chartBox}>
+        {dataHora.length === 0 || totalRango === 0 ? (
+          <div style={styles.cajaEmptyText}>Sin ventas en este rango todavía.</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={dataHora}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#3A3350" />
+              <XAxis dataKey="hora" tick={{ fontSize: 10, fill: "#9A93B0" }} interval={1} />
+              <YAxis tick={{ fontSize: 10, fill: "#9A93B0" }} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
+              <Tooltip formatter={(v) => money(v)} contentStyle={{ fontSize: 12, borderRadius: 8, backgroundColor: "#1F1B2B", border: "1px solid #3A3350", color: "#DAD3EC" }} />
+              <Bar dataKey="total" fill="#D9737C" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        )}
+      </div>
+
+      <div style={{ ...styles.catLabel, marginTop: 20 }}>TOP 5 PRODUCTOS</div>
+      {topProductos.length === 0 ? (
+        <div style={styles.cajaEmptyText}>Sin datos todavía.</div>
       ) : (
-        <div style={styles.cajaEmptyText}>No hay ventas en este período.</div>
+        topProductos.map(([name, p]) => (
+          <div key={name} style={styles.cajaProductRow}><span style={styles.cajaProductQty}>{p.qty}×</span><span style={styles.cajaProductName}>{name}</span><span style={styles.cajaProductSubtotal}>{money(p.subtotal)}</span></div>
+        ))
       )}
 
-      {top.length > 0 && (
-        <>
-          <div style={{ ...styles.catLabel, marginTop: 40 }}>MÁS VENDIDOS</div>
-          {top.map(([name, p]) => (
-            <div key={name} style={styles.cuentaLinea}><span>{p.qty}× {name}</span><span>{money(p.subtotal)}</span></div>
-          ))}
-        </>
+      <div style={{ ...styles.catLabel, marginTop: 20 }}>VENTAS POR MESERO</div>
+      {meserosOrdenados.length === 0 ? (
+        <div style={styles.cajaEmptyText}>Sin datos todavía.</div>
+      ) : (
+        meserosOrdenados.map(([nombre, d]) => (
+          <div key={nombre} style={styles.meseroStatRow}>
+            <div style={styles.meseroStatLeft}>
+              <UserCircle2 size={14} color="#9A93B0" />
+              <span style={styles.pagoRowEtiqueta}>{nombre}</span>
+              <span style={styles.meseroStatSub}>{d.cuentas} {d.cuentas === 1 ? "cuenta" : "cuentas"}{d.propinas > 0 ? ` · ${money(d.propinas)} propina` : ""}</span>
+            </div>
+            <span style={styles.mesaCuentaTotal}>{money(d.total)}</span>
+          </div>
+        ))
       )}
     </div>
   );
 }
 
-/* ---------------- Fuentes y estilos ---------------- */
+/* ---------------- estilos ---------------- */
 
 const fontImports = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-* { box-sizing: border-box; }
-body { margin: 0; background: #F3EEFB; }
-button { font-family: inherit; }
-.solo-imprimir { display: none; }
-@media print {
-  .no-imprimir { display: none !important; }
-  .solo-imprimir { display: block !important; }
-  body { background: #fff; }
-}
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 `;
 
-const C = { bg: "#F3EEFB", ink: "#1B1033", line: "#D9CCEE", mute: "#8B80A3", accent: "#4A2C8F", card: "#FFFFFF", soft: "#E6DDF5", dark: "#1B1033" };
-const btnBase = { border: "none", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
-const inputBase = { width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 14, fontFamily: "inherit", background: "#fff", color: C.ink };
-const smallBtn = { ...btnBase, padding: "6px 10px", fontSize: 12, fontWeight: 600 };
-const eyebrow = { fontSize: 11, letterSpacing: 1.2, color: C.mute, fontWeight: 700 };
-
 const styles = {
-  app: { fontFamily: "'DM Sans', system-ui, sans-serif", background: C.bg, color: C.ink, minHeight: "100vh", display: "flex", flexDirection: "column" },
-  loadingScreen: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg },
-  loadingStamp: { fontFamily: "'DM Sans', sans-serif", fontWeight: 700, letterSpacing: 2, color: C.accent },
-  errorGuardadoBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBE2DC", color: "#8A3A2B", padding: "8px 14px", fontSize: 13 },
-  errorGuardadoCerrar: { ...btnBase, background: "transparent", color: "#8A3A2B", padding: 4 },
-  avisoListoBanner: { display: "flex", alignItems: "center", gap: 8, background: "#2F6690", color: "#fff", padding: "10px 14px", fontSize: 14, fontWeight: 600 },
-  avisoNotifBtn: { ...btnBase, width: "100%", background: "#FBEFD9", color: "#8A611A", padding: "8px 14px", fontSize: 13, borderRadius: 0 },
+  app: { colorScheme: "dark", fontFamily: "'Inter', sans-serif", height: "100dvh", minHeight: "100vh", background: "#16131D", display: "flex", flexDirection: "column", overflow: "hidden", width: "100%" },
+  loadingScreen: { height: "100dvh", minHeight: "100vh", background: "#110E17", display: "flex", alignItems: "center", justifyContent: "center" },
+  loadingStamp: { fontFamily: "'IBM Plex Mono', monospace", color: "#8FB59A", letterSpacing: 2, fontSize: 13 },
+  topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#0F0C15", flexShrink: 0, gap: 8, flexWrap: "wrap" },
+  brand: { display: "flex", alignItems: "center", gap: 8 },
+  brandMark: { color: "#D9737C", fontSize: 14 },
+  brandText: { fontFamily: "'Oswald', sans-serif", color: "#DAD3EC", letterSpacing: 2, fontSize: 15, fontWeight: 600 },
+  syncDot: { width: 7, height: 7, borderRadius: "50%", display: "inline-block", marginLeft: 2 },
+  meseroChip: { display: "flex", alignItems: "center", gap: 5, background: "#262133", color: "#CBC3DD", border: "none", borderRadius: 20, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
+  rolBadge: { marginLeft: "auto", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#E0B866", background: "#3B3020", padding: "2px 8px", borderRadius: 10, fontWeight: 700 },
+  roleSwitch: { display: "flex", background: "#262133", borderRadius: 10, padding: 3, gap: 2 },
+  roleBtn: { display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Inter', sans-serif", border: "none", borderRadius: 8, background: "transparent", color: "#7F7899", cursor: "pointer" },
+  roleBtnActive: { background: "#DAD3EC", color: "#16131D" },
+  roleBtnActiveDark: { background: "#6E6785", color: "#EDE9F7" },
 
-  topBar: { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "10px 14px", background: C.card, borderBottom: `1px solid ${C.line}` },
-  brand: { display: "flex", alignItems: "center", gap: 6, marginRight: "auto" },
-  brandMark: { color: C.accent },
-  brandText: { fontWeight: 700, letterSpacing: 1.5, fontSize: 14 },
-  syncDot: { width: 8, height: 8, borderRadius: 4, display: "inline-block" },
-  meseroChip: { ...smallBtn, background: C.soft, color: C.ink },
-  roleSwitch: { display: "flex", gap: 4, width: "100%" },
-  roleBtn: { ...btnBase, flex: 1, padding: "8px 6px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
-  roleBtnActive: { background: C.accent, color: "#F3EEFB" },
-  roleBtnActiveDark: { background: C.dark, color: "#F3EEFB" },
+  screen: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
+  screenDark: { flex: 1, display: "flex", flexDirection: "column", background: "#110E17", overflow: "hidden", transition: "background 0.2s" },
+  screenFlash: { background: "#2A1A22" },
 
-  screen: { flex: 1, display: "flex", flexDirection: "column", background: C.bg, minHeight: 0 },
-  screenDark: { flex: 1, display: "flex", flexDirection: "column", background: C.dark, color: "#F3EEFB", transition: "background .3s" },
-  screenFlash: { background: "#3A2468" },
-  menuScroll: { flex: 1, overflowY: "auto", padding: "12px 16px 24px" },
-
-  loginWrap: { padding: 20, display: "flex", flexDirection: "column", gap: 10, maxWidth: 420, margin: "0 auto", width: "100%" },
-  pageEyebrow: eyebrow,
-  pageTitle: { fontSize: 24, fontWeight: 700 },
-  cajaEmptyText: { fontSize: 13, color: C.mute, lineHeight: 1.5, padding: "6px 0" },
+  loginWrap: { padding: 24, display: "flex", flexDirection: "column", gap: 10, maxWidth: 420, margin: "0 auto", width: "100%" },
   loginList: { display: "flex", flexDirection: "column", gap: 8 },
-  loginBtn: { ...btnBase, justifyContent: "flex-start", padding: "12px 14px", background: C.card, border: `1px solid ${C.line}`, fontSize: 15, fontWeight: 600, color: C.ink },
-  rolBadge: { marginLeft: "auto", fontSize: 11, color: C.mute, fontWeight: 600 },
-  pinError: { color: "#C1442D", fontSize: 13, padding: "4px 0" },
-  editInput: inputBase,
-  addItemBtn: { ...btnBase, background: C.accent, color: "#F3EEFB", padding: "11px 14px", fontSize: 14, fontWeight: 600 },
-  inlineAddLink: { ...btnBase, background: "transparent", color: C.accent, fontSize: 13, textDecoration: "underline", padding: 6 },
-  inlineLink: { ...btnBase, background: "transparent", color: C.accent, fontSize: 12, textDecoration: "underline" },
-  backBtn: { ...btnBase, background: "transparent", color: C.accent, fontSize: 14, fontWeight: 600, padding: 6 },
+  loginBtn: { display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#DAD3EC", cursor: "pointer" },
+  loginNewRow: { display: "flex", gap: 8, marginTop: 6 },
 
-  subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: C.card, borderBottom: `1px solid ${C.line}` },
-  mesaTitleWrap: { display: "flex", flexDirection: "column", alignItems: "center" },
-  mesaEyebrow: eyebrow,
-  mesaTitle: { fontSize: 18, fontWeight: 700 },
-  cuentaOpenSub: { fontSize: 11, color: C.mute },
-  mesaActionBtn: { ...btnBase, width: 34, height: 34, background: C.soft, color: C.ink },
-  mesaActionPanel: { padding: 12, background: C.card, borderBottom: `1px solid ${C.line}`, display: "flex", flexDirection: "column", gap: 8 },
-  modoChoiceBtn: { ...btnBase, justifyContent: "flex-start", padding: "11px 14px", background: C.card, border: `1px solid ${C.line}`, color: C.ink, fontSize: 14, fontWeight: 600, width: "100%" },
-  closeConfirmText: { fontSize: 13, color: "#4A3F66", lineHeight: 1.5 },
-  mesaPickerRow: { display: "flex", flexWrap: "wrap", gap: 6 },
-  mesaPickerBtn: { ...smallBtn, background: C.soft, color: C.ink },
-  cancelEditBtn: { ...btnBase, padding: "10px 14px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+  pageEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: "#D9AE5C", fontWeight: 600, textTransform: "uppercase" },
+  pageTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#DAD3EC", marginTop: 2, marginBottom: 4 },
+  cajaEmptyText: { fontSize: 13, color: "#9A93B0", lineHeight: 1.5, padding: "8px 0" },
+  editInput: { width: "100%", padding: "11px 12px", borderRadius: 9, border: "1px solid #3A3350", fontSize: 14, fontFamily: "'Inter', sans-serif", color: "#DAD3EC", background: "#1F1B2B", boxSizing: "border-box" },
+  addItemBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", background: "#DAD3EC", color: "#16131D", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer", width: "100%" },
+  backBtn: { alignSelf: "flex-start", background: "transparent", border: "none", color: "#9A93B0", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "6px 0" },
+  pinError: { fontSize: 12.5, color: "#D9737C", fontWeight: 600 },
 
-  ticketStripCol: { padding: "8px 14px", display: "flex", flexDirection: "column", gap: 6, background: C.card, borderBottom: `1px solid ${C.line}` },
-  miniTicketRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
-  miniTicket: { display: "flex", alignItems: "center", gap: 6, fontSize: 12 },
-  stateDot: { width: 8, height: 8, borderRadius: 4, display: "inline-block" },
-  miniTicketTime: { color: C.mute, marginLeft: 4 },
-  editedTag: { background: "#FBEFD9", color: "#8A611A", fontSize: 10, padding: "1px 6px", borderRadius: 6, marginLeft: 4 },
-  miniTicketActions: { display: "flex", alignItems: "center", gap: 6 },
-  confirmText: { fontSize: 12, color: "#C1442D" },
-  confirmYes: { ...smallBtn, background: "#C1442D", color: "#fff" },
-  confirmNo: { ...smallBtn, background: C.soft, color: C.ink },
-  iconBtn: { ...btnBase, width: 28, height: 28, background: C.soft, color: C.ink },
-  marcarServidoBtn: { ...smallBtn, background: "#5B7553", color: "#fff" },
-  miniTicketTotal: { fontSize: 12, color: "#4A3F66", paddingTop: 4 },
-  editingBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBEFD9", color: "#8A611A", padding: "8px 14px", fontSize: 13 },
-  sentBanner: { display: "flex", alignItems: "center", gap: 8, background: "#E4EEE1", color: "#3F5A38", padding: "8px 14px", fontSize: 13 },
-  repeatBtn: { ...btnBase, margin: "8px 14px 0", padding: "8px 12px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+  subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #3A3350", flexShrink: 0, gap: 8 },
+  mesaTitleWrap: { display: "flex", flexDirection: "column", alignItems: "center", flex: 1 },
+  mesaEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1.5, color: "#7F7899", fontWeight: 600 },
+  mesaTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#DAD3EC" },
+  cuentaOpenSub: { fontSize: 11, color: "#7FAE8B", fontWeight: 600, marginTop: 2 },
+  mesaActionBtn: { width: 34, height: 34, borderRadius: 9, border: "1px solid #3A3350", background: "#1F1B2B", color: "#DAD3EC", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  mesaActionPanel: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 8, background: "#262133", borderBottom: "1px solid #3A3350" },
+  modoChoiceBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 10px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 9, fontSize: 13, fontWeight: 600, color: "#DAD3EC", cursor: "pointer" },
+  closeConfirmText: { fontSize: 12.5, color: "#B9B2CC", lineHeight: 1.5 },
+  mesaPickerRow: { display: "flex", flexWrap: "wrap", gap: 8 },
+  mesaPickerBtn: { padding: "9px 14px", background: "#DAD3EC", color: "#16131D", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  cancelEditBtn: { padding: "11px 14px", background: "transparent", color: "#9A93B0", border: "1px solid #3A3350", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
 
-  catPillsWrap: { padding: "10px 14px 4px", display: "flex", flexDirection: "column", gap: 8 },
-  searchInput: inputBase,
-  catPills: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 },
-  catPill: { ...btnBase, padding: "6px 12px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" },
-  catPillActive: { background: C.accent, color: "#F3EEFB" },
-  catPillBadge: { background: "#C1442D", color: "#fff", borderRadius: 8, fontSize: 10, padding: "1px 6px" },
-  menuRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 0", borderBottom: `1px solid ${C.line}` },
-  menuItemName: { fontSize: 14, fontWeight: 600 },
-  agotadoTag: { background: "#8B80A3", color: "#fff", fontSize: 10, padding: "1px 6px", borderRadius: 6, marginLeft: 6 },
-  menuItemCat: { fontSize: 11, color: C.mute },
-  menuItemPrice: { fontSize: 13, color: "#4A3F66" },
-  itemNoteInput: { ...inputBase, padding: "6px 8px", fontSize: 12, marginTop: 4 },
-  itemNoteBtn: { ...btnBase, background: "transparent", color: C.accent, fontSize: 11, padding: "4px 0", justifyContent: "flex-start" },
-  stepper: { display: "flex", alignItems: "center", gap: 8 },
-  stepBtn: { ...btnBase, width: 32, height: 32, background: C.soft, color: C.ink },
-  stepBtnPlus: { background: C.accent, color: "#F3EEFB" },
-  stepVal: { minWidth: 20, textAlign: "center", fontWeight: 700 },
-  noResults: { textAlign: "center", color: C.mute, padding: 20, fontSize: 13 },
-  orderBar: { padding: 12, background: C.card, borderTop: `1px solid ${C.line}`, display: "flex", flexDirection: "column", gap: 8 },
-  noteInput: inputBase,
-  sendBtn: { ...btnBase, padding: "12px 14px", background: C.accent, color: "#F3EEFB", fontSize: 15, fontWeight: 700 },
+  ticketStripCol: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6, background: "#262133", borderBottom: "1px solid #3A3350" },
+  miniTicketRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  miniTicket: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#B9B2CC", flex: 1, flexWrap: "wrap" },
+  stateDot: { width: 7, height: 7, borderRadius: "50%", display: "inline-block" },
+  miniTicketTime: { marginLeft: "auto", color: "#7F7899", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5 },
+  editedTag: { fontSize: 9.5, fontWeight: 700, color: "#E0B866", background: "#3B3020", padding: "1px 6px", borderRadius: 8, textTransform: "uppercase" },
+  miniTicketActions: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
+  marcarServidoBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", background: "#7EA6D6", color: "#16131D", border: "none", borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: "pointer" },
+  confirmText: { fontSize: 11.5, color: "#B9B2CC", marginRight: 2 },
+  confirmYes: { padding: "5px 10px", background: "#7FAE8B", color: "#16131D", border: "none", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  confirmNo: { padding: "5px 10px", background: "transparent", color: "#9A93B0", border: "1px solid #3A3350", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  iconBtn: { width: 26, height: 26, borderRadius: 7, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  miniTicketTotal: { fontSize: 12, color: "#B9B2CC", paddingTop: 2 },
+  editingBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#3B3020", color: "#E0B866", fontSize: 12, fontWeight: 600 },
+  sentBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#1F3329", color: "#7FAE8B", fontSize: 12, fontWeight: 600 },
+  repeatBtn: { margin: "10px 16px 0", padding: "10px", background: "#1F1B2B", border: "1px dashed #4A4263", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#E0B866", cursor: "pointer" },
 
-  mesaGridHeader: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "14px 16px 6px", gap: 8 },
-  editMenuBtn: { ...smallBtn, background: C.soft, color: C.ink },
-  lockedNote: { display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mute },
-  vistaMesasSwitch: { display: "flex", gap: 6, padding: "6px 16px 10px" },
-  vistaMesasBtn: { ...btnBase, flex: 1, padding: "8px 10px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
-  vistaMesasBtnActive: { background: C.accent, color: "#F3EEFB" },
-  mesaGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, padding: "0 16px 16px" },
-  mesaCard: { ...btnBase, flexDirection: "column", alignItems: "flex-start", padding: 14, background: C.card, border: `1px solid ${C.line}`, color: C.ink, gap: 6, minHeight: 90 },
-  mesaCardNum: { fontSize: 17, fontWeight: 700 },
-  mesaCardTag: { fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 8, display: "inline-block" },
-  mesaCardSince: { fontSize: 11, color: C.mute },
+  catPillsWrap: { padding: "10px 16px 6px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 },
+  searchInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #3A3350", fontSize: 13.5, background: "#1F1B2B", color: "#DAD3EC" },
+  catPills: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 },
+  catPill: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 20, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", flexShrink: 0 },
+  catPillActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
+  catPillBadge: { background: "#D9737C", color: "#16131D", fontSize: 10, fontWeight: 700, borderRadius: 8, padding: "1px 6px" },
 
-  addItemCard: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 },
-  catLabel: { ...eyebrow, margin: "12px 0 6px" },
-  menuEditItemBlock: { borderBottom: `1px solid ${C.line}`, padding: "4px 0" },
-  editRow: { display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: `1px solid ${C.line}` },
-  agotadoToggle: { ...btnBase, width: 28, height: 28, background: C.soft, color: C.mute },
-  agotadoToggleActive: { background: "#8B80A3", color: "#fff" },
-  precioEditableBtn: { ...btnBase, marginLeft: "auto", background: "transparent", color: C.ink, fontSize: 13, fontWeight: 600, gap: 4 },
-  deleteBtn: { ...btnBase, width: 28, height: 28, background: "transparent", color: "#C1442D" },
-  costoEditRow: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", paddingBottom: 6 },
-  costoPillBtn: { ...btnBase, background: "transparent", color: C.mute, fontSize: 11, padding: "2px 0", justifyContent: "flex-start" },
-  enCursoTag: { background: "#FBEFD9", color: "#8A611A", fontSize: 10, padding: "2px 6px", borderRadius: 6 },
-  mesaReorderBtn: { ...btnBase, width: 22, height: 16, fontSize: 9, background: C.soft, color: C.ink, padding: 0 },
+  menuScroll: { flex: 1, overflowY: "auto", padding: "8px 16px 16px" },
+  menuRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 0", borderBottom: "1px solid #2E2840" },
+  menuItemName: { fontSize: 14, fontWeight: 600, color: "#DAD3EC" },
+  agotadoTag: { fontSize: 9.5, fontWeight: 700, color: "#D9737C", background: "#3F2430", padding: "1px 6px", borderRadius: 8, marginLeft: 4 },
+  menuItemCat: { fontSize: 11, color: "#7F7899", marginTop: 1 },
+  menuItemPrice: { fontSize: 12.5, color: "#9A93B0", marginTop: 2 },
+  itemNoteInput: { marginTop: 4, padding: "6px 8px", fontSize: 11.5, borderRadius: 7, border: "1px solid #3A3350", width: "90%" },
+  itemNoteBtn: { display: "flex", alignItems: "center", gap: 4, marginTop: 4, background: "transparent", border: "none", color: "#D9AE5C", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: 0 },
+  stepper: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
+  stepBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid #3A3350", background: "#1F1B2B", color: "#DAD3EC", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  stepBtnPlus: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
+  stepVal: { fontSize: 14, fontWeight: 700, color: "#DAD3EC", minWidth: 16, textAlign: "center" },
+  noResults: { textAlign: "center", color: "#7F7899", fontSize: 13, padding: "20px 0" },
 
-  planoContainer: { position: "relative", width: "100%", height: 320, background: C.card, border: `1px dashed ${C.line}`, borderRadius: 12, overflow: "hidden", marginBottom: 12 },
-  planoVacio: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: C.mute, fontSize: 13 },
-  planoMesaTile: { position: "absolute", transform: "translate(-50%, -50%)", padding: "10px 12px", borderRadius: 10, border: "2px solid", fontSize: 12, fontWeight: 700, userSelect: "none", fontFamily: "inherit" },
+  orderBar: { display: "flex", flexDirection: "column", gap: 8, padding: "10px 16px 14px", borderTop: "1px solid #3A3350", flexShrink: 0, background: "#16131D" },
+  noteInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #3A3350", fontSize: 13, background: "#1F1B2B" },
+  sendBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 14px", background: "#D9737C", color: "#16131D", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" },
 
-  kdsHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px" },
-  kdsEyebrow: { ...eyebrow, color: "#A598C8" },
-  kdsTitle: { fontSize: 22, fontWeight: 700 },
-  kdsCount: { fontSize: 32, fontWeight: 700, color: "#F3EEFB" },
-  recienListosRow: { display: "flex", gap: 6, flexWrap: "wrap", padding: "0 16px 8px" },
-  recienListoChip: { ...smallBtn, background: "#3A2468", color: "#E6DDF5" },
-  emptyKitchen: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: 40 },
-  emptyKitchenText: { color: "#A598C8", fontSize: 14 },
-  rail: { display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 20px" },
-  ticket: { background: "#2A1B4D", borderLeft: "6px solid", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 6 },
-  ticketHead: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  ticketMesa: { fontSize: 18, fontWeight: 700 },
-  editedBadge: { background: "#B98A2E", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 6, marginLeft: 8 },
-  ticketTime: { fontSize: 14 },
-  ticketExactTime: { fontSize: 11, color: "#A598C8" },
-  ticketDivider: { height: 1, background: "#4A3F66", margin: "4px 0" },
-  ticketLine: { display: "flex", gap: 8, fontSize: 16 },
-  ticketQty: { fontWeight: 700, color: "#E6B35A" },
-  ticketItemName: { fontWeight: 600 },
-  ticketItemNote: { fontSize: 13, color: "#E6B35A", marginLeft: 28 },
-  ticketNote: { fontSize: 13, fontStyle: "italic", color: "#E6DDF5" },
-  ticketBackBtn: { ...btnBase, padding: "0 14px", background: "#4A3F66", color: "#fff" },
-  ticketBtn: { ...btnBase, padding: "12px 14px", color: "#fff", fontSize: 14, fontWeight: 700 },
+  mesaGridHeader: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "16px 16px 8px" },
+  vistaMesasSwitch: { display: "flex", gap: 6, padding: "0 16px 10px" },
+  vistaMesasBtn: { padding: "6px 12px", borderRadius: 20, border: "1px solid #3A3350", background: "#1F1B2B", color: "#9A93B0", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
+  vistaMesasBtnActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
+  planoContainer: { position: "relative", width: "100%", paddingTop: "70%", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 14 },
+  planoMesaTile: { position: "absolute", transform: "translate(-50%, -50%)", width: 74, height: 74, borderRadius: 14, border: "2px solid", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, textAlign: "center", padding: 4, lineHeight: 1.2, boxShadow: "0 2px 6px rgba(0,0,0,0.08)", userSelect: "none", WebkitUserSelect: "none" },
+  planoVacio: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#7F7899", fontSize: 12.5 },
+  editMenuBtn: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#DAD3EC", cursor: "pointer" },
+  mesaGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "8px 16px 16px", overflowY: "auto" },
+  mesaCard: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "18px 16px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 14, cursor: "pointer", minHeight: 100 },
+  mesaCardNum: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#DAD3EC", lineHeight: 1.15, wordBreak: "break-word" },
+  mesaReorderBtn: { width: 22, height: 20, fontSize: 9, lineHeight: 1, border: "1px solid #3A3350", borderRadius: 5, background: "#1F1B2B", color: "#9A93B0", cursor: "pointer" },
+  mesaCardTag: { fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8, textTransform: "uppercase", letterSpacing: 0.4 },
+  mesaCardSince: { fontSize: 10.5, color: "#7F7899" },
 
-  cajaTabSwitch: { display: "flex", gap: 4, padding: "6px 16px 10px", overflowX: "auto" },
-  cajaTabBtn: { ...btnBase, flex: 1, padding: "8px 10px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
-  cajaTabBtnActive: { background: C.accent, color: "#F3EEFB" },
-  cajaTotalCard: { background: C.dark, color: "#F3EEFB", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 },
-  cajaTotalLabel: { fontSize: 12, color: "#A598C8" },
-  cajaTotalValue: { fontSize: 30, fontWeight: 700 },
-  cajaTotalValue2: { fontSize: 28, fontWeight: 700, display: "flex", flexDirection: "column", margin: "6px 0" },
-  turnoEsperadoLabel: { fontSize: 12, fontWeight: 400, color: C.mute },
-  metodoBreakdownRow: { display: "flex", flexDirection: "column", gap: 4, marginTop: 6 },
-  metodoBreakdownItem: { display: "flex", alignItems: "center", gap: 6, fontSize: 13 },
-  metodoBreakdownLabel: { color: "#A598C8", flex: 1 },
-  metodoBreakdownValue: { fontWeight: 600 },
-  warnBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBEFD9", color: "#8A611A", padding: "10px 12px", borderRadius: 10, fontSize: 13, margin: "8px 0" },
-  goHistLink: { color: C.accent, fontSize: 13, textDecoration: "underline", cursor: "pointer", padding: "12px 0", textAlign: "center" },
+  addItemCard: { display: "flex", flexDirection: "column", gap: 8, padding: 14, background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 12, marginBottom: 16 },
+  catLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.2, color: "#7F7899", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" },
+  editRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #2E2840" },
+  menuEditItemBlock: { borderBottom: "1px solid #2E2840" },
+  costoPillBtn: { display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: "#D9AE5C", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: "0 0 8px 32px" },
+  precioEditableBtn: { display: "flex", alignItems: "center", gap: 3, background: "#262133", border: "none", borderRadius: 7, padding: "3px 8px", fontSize: 12.5, fontWeight: 700, color: "#DAD3EC", cursor: "pointer" },
+  costoEditRow: { display: "flex", alignItems: "center", gap: 6, padding: "0 0 10px 32px" },
+  agotadoToggle: { width: 26, height: 26, borderRadius: 7, border: "1px solid #3A3350", background: "#1F1B2B", color: "#7F7899", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
+  agotadoToggleActive: { background: "#3F2430", color: "#D9737C", border: "1px solid #D9737C" },
+  deleteBtn: { width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: "#D9737C", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
 
-  turnoBox: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 },
-  metodoResumenRow: { display: "flex", gap: 8 },
-  metodoResumenItem: { flex: 1, display: "flex", flexDirection: "column", gap: 2, background: C.bg, borderRadius: 10, padding: 10 },
-  metodoResumenLabel: { fontSize: 11, color: C.mute },
-  metodoResumenValue: { fontSize: 15, fontWeight: 700 },
-  closeCajaBtn: { ...btnBase, padding: "11px 14px", background: C.dark, color: "#F3EEFB", fontSize: 14, fontWeight: 600 },
+  kdsHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 },
+  kdsEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.5, color: "#8FB59A", fontWeight: 600 },
+  kdsTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#DAD3EC", marginTop: 2 },
+  kdsCount: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#D9737C" },
+  emptyKitchen: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 },
+  emptyKitchenText: { color: "#6E6785", fontSize: 13, fontWeight: 600 },
+  rail: { flex: 1, overflowX: "auto", display: "flex", gap: 12, padding: "0 20px 20px", alignItems: "flex-start" },
+  ticket: { background: "#1C1826", borderRadius: 12, borderLeft: "4px solid #D9737C", padding: 14, minWidth: 240, maxWidth: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 },
+  ticketHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  ticketMesa: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#DAD3EC", display: "flex", alignItems: "center", gap: 6 },
+  editedBadge: { fontSize: 9, fontWeight: 700, color: "#DAD3EC", background: "#D9AE5C", padding: "1px 6px", borderRadius: 6 },
+  ticketTime: { fontSize: 12, display: "flex", alignItems: "center" },
+  ticketExactTime: { fontSize: 10.5, color: "#7F7899" },
+  ticketDivider: { height: 1, background: "#2D2740", margin: "6px 0" },
+  ticketLine: { display: "flex", gap: 8, padding: "3px 0" },
+  ticketQty: { color: "#D9737C", fontWeight: 700, fontSize: 13, minWidth: 24 },
+  ticketItemName: { color: "#DAD3EC", fontSize: 13 },
+  ticketItemNote: { color: "#D9AE5C", fontSize: 11.5, paddingLeft: 32, fontStyle: "italic" },
+  ticketNote: { color: "#CBC3DD", fontSize: 12, fontStyle: "italic", marginTop: 4 },
+  ticketBtn: { marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", border: "none", borderRadius: 8, color: "#16131D", fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
+  ticketBackBtn: { marginTop: 6, width: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "#2D2740", border: "none", borderRadius: 8, color: "#CBC3DD", fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  recienListosRow: { display: "flex", gap: 8, overflowX: "auto", padding: "0 20px 12px", flexShrink: 0 },
+  recienListoChip: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#7EA6D6", color: "#16131D", border: "none", borderRadius: 20, fontSize: 11.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 },
+
+  cajaTabSwitch: { display: "flex", gap: 6, padding: "0 16px 12px", flexShrink: 0, overflowX: "auto" },
+  cajaTabBtn: { padding: "8px 13px", borderRadius: 20, border: "1px solid #3A3350", background: "#1F1B2B", color: "#9A93B0", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" },
+  cajaTabBtnActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
+  cajaTotalCard: { padding: 16, background: "#2A2340", borderRadius: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 4 },
+  cajaTotalLabel: { fontSize: 11.5, color: "#7F7899", fontWeight: 600 },
+  cajaTotalValue: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#DAD3EC" },
+  cajaTotalValue2: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#DAD3EC", display: "flex", flexDirection: "column", gap: 2, margin: "8px 0" },
+  metodoBreakdownRow: { display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" },
+  metodoBreakdownItem: { display: "flex", alignItems: "center", gap: 5 },
+  metodoBreakdownLabel: { fontSize: 11, color: "#7F7899" },
+  metodoBreakdownValue: { fontSize: 12, color: "#DAD3EC", fontWeight: 700 },
+  warnBanner: { display: "flex", alignItems: "center", gap: 6, padding: "10px 12px", background: "#3B3020", color: "#E0B866", borderRadius: 10, fontSize: 12, fontWeight: 600, marginBottom: 12 },
+  errorGuardadoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#D9737C", color: "#16131D", fontSize: 12.5, fontWeight: 600, flexShrink: 0 },
+  avisoListoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#7FAE8B", color: "#16131D", fontSize: 12.5, fontWeight: 700, flexShrink: 0 },
+  avisoNotifBanner: { display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: "#0F0C15", color: "#CBC3DD", fontSize: 11.5, flexShrink: 0 },
+  avisoNotifBtn: { padding: "6px 12px", background: "#D9AE5C", color: "#16131D", border: "none", borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
+  avisoNotifCerrar: { background: "transparent", border: "none", color: "#CBC3DD", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
+  errorGuardadoCerrar: { background: "transparent", border: "none", color: "#16131D", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
+  goHistLink: { textAlign: "center", padding: "12px 0", color: "#D9AE5C", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+
+  turnoBox: { display: "flex", flexDirection: "column", gap: 8, padding: 16, background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 14, marginBottom: 14 },
+  turnoEsperadoLabel: { fontSize: 11, fontWeight: 500, color: "#9A93B0", textTransform: "none" },
+  margenRow: { fontSize: 11.5, color: "#8FB59A", marginTop: 4 },
+  tiempoCocinaBox: { display: "flex", alignItems: "center", gap: 6, background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#B9B2CC" },
+  reportePrintHeader: { marginBottom: 14 },
+  reportePrintTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#DAD3EC" },
+  reportePrintSub: { fontSize: 11, color: "#9A93B0", marginTop: 2 },
+  closeCajaBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", background: "#D9737C", color: "#16131D", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: "pointer" },
   closeConfirmBox: { display: "flex", flexDirection: "column", gap: 8 },
-  diferenciaBox: { padding: "10px 12px", borderRadius: 10, fontWeight: 700, fontSize: 14 },
-  turnoRowCol: { padding: "10px 0", borderBottom: `1px solid ${C.line}` },
-  turnoRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: `1px solid ${C.line}` },
-  cierreDate: { fontSize: 12, color: "#4A3F66" },
-  turnoDiff: { fontSize: 13, fontWeight: 700 },
-  turnoSubRow: { fontSize: 12, color: C.mute, marginTop: 2 },
-  turnoObsRow: { fontSize: 12, fontStyle: "italic", color: "#4A3F66", marginTop: 2 },
-  canceladasToggle: { ...btnBase, width: "100%", justifyContent: "space-between", padding: "10px 12px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
-  pagoRowEtiqueta: { fontSize: 13, fontWeight: 600 },
+  diferenciaBox: { padding: "8px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, color: "#B9B2CC" },
+  vueltosBox: { display: "flex", flexDirection: "column", gap: 6 },
+  turnoRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #2E2840", gap: 8 },
+  turnoRowCol: { borderBottom: "1px solid #2E2840", padding: "8px 0" },
+  turnoSubRow: { fontSize: 11, color: "#9A93B0", marginTop: 2 },
+  turnoObsRow: { fontSize: 11.5, color: "#E0B866", fontStyle: "italic", marginTop: 3 },
+  metodoResumenRow: { display: "flex", gap: 16, margin: "10px 0 2px", flexWrap: "wrap" },
+  metodoResumenItem: { display: "flex", alignItems: "center", gap: 5 },
+  metodoResumenLabel: { fontSize: 11.5, color: "#9A93B0" },
+  metodoResumenValue: { fontSize: 12.5, color: "#DAD3EC", fontWeight: 700 },
+  cierreDate: { fontSize: 11.5, color: "#9A93B0" },
+  turnoDiff: { fontSize: 12, fontWeight: 700 },
+  lockedNote: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#7F7899", padding: "6px 0" },
 
-  cuentaCard: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, marginBottom: 10, overflow: "hidden" },
-  cuentaHead: { ...btnBase, width: "100%", justifyContent: "space-between", padding: 14, background: "transparent", color: C.ink, borderRadius: 0 },
-  cuentaMesa: { fontSize: 17, fontWeight: 700 },
-  cuentaSub: { fontSize: 12, color: C.mute },
-  cuentaTotal: { fontSize: 18, fontWeight: 700, marginBottom: 4 },
-  cuentaBody: { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 6 },
-  cuentaLinea: { display: "flex", justifyContent: "space-between", gap: 8, fontSize: 14, padding: "3px 0" },
+  usuarioRow: { display: "flex", flexDirection: "column", gap: 6, padding: "10px 0", borderBottom: "1px solid #2E2840" },
+  usuarioRowLeft: { display: "flex", alignItems: "center", gap: 6 },
+  usuarioRowActions: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  inlineLink: { background: "transparent", border: "none", color: "#D9AE5C", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
+  inlineAddLink: { background: "transparent", border: "none", color: "#D9AE5C", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: "6px 0", textAlign: "left", display: "flex", alignItems: "center", gap: 5 },
+  resetPinRow: { display: "flex", gap: 8, marginTop: 4 },
+  rolPillsRow: { display: "flex", gap: 6 },
+  rolPillsRowSmall: { display: "flex", gap: 4 },
+  rolPill: { flex: 1, padding: "9px 0", textAlign: "center", borderRadius: 8, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+  rolPillSmall: { padding: "4px 8px", borderRadius: 7, border: "1px solid #3A3350", background: "#1F1B2B", color: "#9A93B0", fontSize: 10.5, fontWeight: 600, cursor: "pointer" },
+  rolPillActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
+  auditText: { fontSize: 11.5, color: "#B9B2CC" },
 
-  histHead: { ...btnBase, width: "100%", justifyContent: "space-between", padding: "10px 12px", background: C.card, border: `1px solid ${C.line}`, color: C.ink, fontSize: 14, marginTop: 6 },
-  histDetalle: { padding: "6px 10px 10px", background: C.card, borderRadius: 8, marginTop: 4 },
+  pinVisorRow: { display: "flex", padding: "2px 0" },
+  pinVisorBtn: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#9A93B0", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
+  pinVisorValue: { fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1.5, color: "#DAD3EC", fontWeight: 700 },
+
+  metodoPillsRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  metodoPill: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 9, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+
+  mesaCuentaCard: { background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 12, marginBottom: 10, overflow: "hidden" },
+  mesaCuentaHead: { width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "13px 14px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
+  mesaCuentaLeft: { display: "flex", flexDirection: "column", gap: 3 },
+  mesaCuentaNum: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#DAD3EC" },
+  mesaCuentaSince: { fontSize: 11, color: "#7F7899" },
+  enCursoTag: { fontSize: 10.5, fontWeight: 700, color: "#E0B866", background: "#3B3020", padding: "2px 7px", borderRadius: 8, alignSelf: "flex-start", marginTop: 2 },
+  mesaCuentaRight: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 },
+  mesaCuentaItems: { fontSize: 11, color: "#7F7899" },
+  mesaCuentaTotal: { fontFamily: "'Oswald', sans-serif", fontSize: 17, fontWeight: 700, color: "#DAD3EC" },
+  mesaCuentaBody: { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #2E2840" },
+  mesaCuentaOrderRow: { display: "flex", gap: 8, fontSize: 11.5, color: "#B9B2CC", padding: "6px 0", borderBottom: "1px solid #262133" },
+  mesaCuentaOrderTime: { color: "#7F7899", flexShrink: 0 },
+  mesaCuentaOrderItems: { flex: 1 },
+  mesaCuentaOrderTotal: { fontWeight: 700, color: "#DAD3EC", flexShrink: 0 },
+
+  subtotalRow: { display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12.5, color: "#B9B2CC", padding: "4px 0" },
+  subtotalRowFinal: { fontSize: 15, fontWeight: 700, color: "#DAD3EC", borderTop: "1px solid #2E2840", marginTop: 4, paddingTop: 8 },
+  descuentoBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0" },
+  propinaBox: { display: "flex", flexDirection: "column", gap: 6, padding: "6px 0" },
+  propinaPillsRow: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" },
+  propinaPill: { padding: "7px 12px", borderRadius: 8, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  propinaCustomInput: { width: 70, padding: "7px 8px", borderRadius: 8, border: "1px solid #3A3350", fontSize: 12 },
+  propinaCustomBtn: { padding: "7px 10px", borderRadius: 8, border: "none", background: "#DAD3EC", color: "#16131D", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+
+  pagosRegistradosBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0", borderTop: "1px solid #2E2840", marginTop: 4 },
+  pagosRegistradosLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1, color: "#7F7899", fontWeight: 700 },
+  pagoRow: { display: "flex", alignItems: "center", gap: 8 },
+  pagoRowMid: { display: "flex", flexDirection: "column", flex: 1, minWidth: 0 },
+  pagoRowEtiqueta: { fontSize: 12.5, fontWeight: 600, color: "#DAD3EC" },
+  pagoRowItems: { fontSize: 10.5, color: "#9A93B0" },
+  pagoRowTime: { fontSize: 10.5, color: "#7F7899" },
+  pagoRowMonto: { fontSize: 12.5, fontWeight: 700, color: "#DAD3EC", flexShrink: 0 },
+
+  cobroBox: { display: "flex", flexDirection: "column", gap: 10, padding: "10px 0 0", borderTop: "1px solid #2E2840", marginTop: 6 },
+  cerrarVaciaBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0" },
+  cancelarCuentaBox: { padding: "10px 0 0", borderTop: "1px solid #2E2840", marginTop: 6 },
+  canceladasBox: { background: "#3F2430", border: "1px solid #6B3F4A", borderRadius: 10, padding: 10, marginBottom: 14 },
+  cargandoHistBox: { display: "flex", alignItems: "center", gap: 6, background: "#262133", borderRadius: 8, padding: "8px 10px", marginBottom: 10, fontSize: 11.5, color: "#9A93B0" },
+  canceladasToggle: { width: "100%", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "#F0A3A8", fontSize: 12, fontWeight: 700, cursor: "pointer", textAlign: "left" },
+  canceladaRow: { padding: "7px 0", borderTop: "1px solid #6B3F4A" },
+  canceladaMotivo: { fontSize: 11.5, color: "#F0A3A8", marginTop: 2 },
+  modoChoiceRow: { display: "flex", flexDirection: "column", gap: 8 },
+  partesStepperRow: { display: "flex", alignItems: "center", gap: 8 },
+  productoSplitRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: "1px solid #262133" },
+
+  rowBetween: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+  exportLink: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#D9AE5C", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  histRow: { width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "13px 0", borderBottom: "1px solid #2E2840", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
+  histRowTitle: { fontSize: 14, fontWeight: 700, color: "#DAD3EC", flex: 1 },
+  histRowSub: { fontSize: 11.5, color: "#7F7899" },
+  histRowTotal: { fontSize: 14, fontWeight: 700, color: "#DAD3EC" },
+
+  metodoBreakdownRowLight: { display: "flex", gap: 16, flexWrap: "wrap" },
+  metodoBreakdownItemLight: { display: "flex", alignItems: "center", gap: 5 },
+  metodoBreakdownLabelLight: { fontSize: 11.5, color: "#9A93B0" },
+  metodoBreakdownValueLight: { fontSize: 12.5, color: "#DAD3EC", fontWeight: 700 },
+
+  cierreRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #2E2840" },
+  cierrePedidos: { fontSize: 11, color: "#7F7899", flexShrink: 0 },
+  cierreTotal: { fontSize: 12.5, fontWeight: 700, color: "#DAD3EC", flexShrink: 0 },
+  dividedTag: { color: "#D9AE5C", fontWeight: 600 },
+
+  cajaProductRow: { display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid #262133" },
+  cajaProductQty: { color: "#D9737C", fontWeight: 700, fontSize: 12.5, minWidth: 28 },
+  cajaProductName: { flex: 1, fontSize: 12.5, color: "#DAD3EC" },
+  cajaProductSubtotal: { fontSize: 12.5, fontWeight: 700, color: "#DAD3EC" },
+  chartBox: { background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 12, padding: "10px 6px", marginBottom: 4 },
+
+  meseroStatRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 0", borderBottom: "1px solid #2E2840" },
+  meseroStatLeft: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  meseroStatSub: { fontSize: 11, color: "#7F7899" },
 };

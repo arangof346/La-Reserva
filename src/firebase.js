@@ -3,31 +3,27 @@ import { getDatabase, ref, onValue, get, query, orderByChild, startAt, set, upda
 
 /*
  * ─────────────────────────────────────────────────────────────────────────
- *  PASO OBLIGATORIO ANTES DE DESPLEGAR
+ *  CONFIGURACIÓN DE FIREBASE (una por cliente)
  * ─────────────────────────────────────────────────────────────────────────
- *  1. Ve a https://console.firebase.google.com y crea un proyecto (gratis).
- *  2. En el menú lateral: "Compilación" → "Realtime Database" → "Crear base
- *     de datos". Elige la región más cercana. Cuando pregunte por las reglas
- *     de seguridad, elige "Modo de prueba" para empezar rápido (puedes
- *     endurecerlas después, ver database.rules.json en la raíz del proyecto).
- *  3. En "Configuración del proyecto" (ícono de engranaje) → pestaña
- *     "General" → sección "Tus apps" → clic en el ícono web </> para crear
- *     una app web. Copia el objeto de configuración que te da Firebase y
- *     pégalo reemplazando el objeto de aquí abajo.
- *  4. Guarda este archivo y sube el proyecto a Netlify. Listo — todos los
- *     dispositivos que abran el link verán los mismos datos, en vivo, y
- *     nada se borra al cerrar o refrescar la página.
+ *  Las claves NO van escritas en el código: se leen de variables de entorno.
+ *    - En tu computador: copia ".env.example" como ".env" y llénalo.
+ *    - En Netlify: Site configuration → Environment variables (mismos nombres).
+ *  Los pasos para crear el proyecto de Firebase están en el README.
  * ─────────────────────────────────────────────────────────────────────────
  */
+const env = import.meta.env;
 const firebaseConfig = {
-  apiKey: "AIzaSyBOxKCrmZs_Osa7_TRpcndE9i69hJASYGE",
-  authDomain: "dulce-y-cafe-dabf3.firebaseapp.com",
-  databaseURL: "https://dulce-y-cafe-dabf3-default-rtdb.firebaseio.com",
-  projectId: "dulce-y-cafe-dabf3",
-  storageBucket: "dulce-y-cafe-dabf3.firebasestorage.app",
-  messagingSenderId: "354247335288",
-  appId: "1:354247335288:web:fe5be065ce836a50797c8d",
+  apiKey: env.VITE_FIREBASE_API_KEY,
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: env.VITE_FIREBASE_DATABASE_URL,
+  projectId: env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: env.VITE_FIREBASE_APP_ID,
 };
+if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
+  console.error("Falta la configuración de Firebase: revisa el archivo .env (o las variables de entorno en Netlify). Mira el README.");
+}
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
