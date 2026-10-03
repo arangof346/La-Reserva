@@ -36,8 +36,15 @@ que suficiente para un negocio de este tamaño.
    };
    ```
 
-4. Abre `src/firebase.js` en este proyecto y reemplaza el objeto
-   `firebaseConfig` de ejemplo por el que copiaste.
+4. Copia el archivo `.env.example` como `.env` y llena cada variable con los
+   datos que copiaste (`VITE_FIREBASE_...`) y el nombre del negocio
+   (`VITE_NOMBRE_NEGOCIO`). El archivo `.env` no se sube a GitHub.
+   En Netlify, carga esas mismas variables en **Site configuration →
+   Environment variables** antes de hacer el deploy.
+5. En Firebase: **Realtime Database → Reglas**, pega el contenido de
+   `database.rules.json` y publica. Es importante: el "Modo de prueba" de
+   Firebase vence a los 30 días y la app dejaría de guardar datos, y estas
+   reglas además crean los índices que la app necesita.
 
 Sobre seguridad: el archivo `database.rules.json` que incluí deja la base
 abierta (cualquiera con la URL puede leer/escribir), lo cual es aceptable
@@ -80,22 +87,24 @@ reglas más estrictas en Realtime Database → Reglas.
    seguir ahí (nada se borra).
 
 Si algo no aparece en vivo, lo más probable es que falte pegar el
-`firebaseConfig` real en `src/firebase.js` — revisa la consola del navegador
-(F12) por errores de Firebase.
+configuración de Firebase en `.env` (o en las variables de Netlify) — revisa
+la consola del navegador (F12) por errores de Firebase.
 
 ## Estructura del proyecto
 
 ```
 ├── index.html          punto de entrada HTML
 ├── netlify.toml         configuración de build para Netlify
+├── .env.example         plantilla de variables (nombre y Firebase)
 ├── database.rules.json  reglas de seguridad sugeridas para Firebase
 ├── package.json          dependencias (React, Firebase, recharts, xlsx, lucide-react)
 ├── vite.config.js        configuración del bundler
 └── src/
     ├── main.jsx          monta la app de React
     ├── App.jsx           toda la app (Mesero, Cocina, Caja)
-    └── firebase.js        conexión a la base de datos en vivo — AQUÍ pegas tu config
+    └── firebase.js        conexión a la base de datos en vivo (lee la config del .env)
 ```
 
-No necesitas tocar nada más que `src/firebase.js`. El resto del código está
-listo tal cual para producción.
+No necesitas tocar código: solo el archivo `.env` (o las variables de Netlify).
+El primer usuario que entre crea la cuenta de administrador, y desde
+Mesero → Menú se carga el menú del negocio.
