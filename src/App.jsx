@@ -27,17 +27,17 @@ const DEFAULT_MESAS = [
 const DEFAULT_MENU = [];
 
 const STATE_META = {
-  pendiente: { label: "En cocina", color: "#D9737C" },
-  preparando: { label: "Preparando", color: "#D9AE5C" },
-  listo: { label: "Listo para servir", color: "#7EA6D6" },
-  servido: { label: "Servido", color: "#7FAE8B" },
-  cancelado: { label: "Cancelado", color: "#7F7899" },
+  pendiente: { label: "En cocina", color: "#CF7B6F" },
+  preparando: { label: "Preparando", color: "#D2A64E" },
+  listo: { label: "Listo para servir", color: "#7BA0C4" },
+  servido: { label: "Servido", color: "#7FA687" },
+  cancelado: { label: "Cancelado", color: "#7A7467" },
 };
 
 const METODO_META = {
-  efectivo: { label: "Efectivo", icon: Banknote, color: "#7FAE8B" },
-  tarjeta: { label: "Tarjeta", icon: CreditCard, color: "#7EA6D6" },
-  transferencia: { label: "Transferencia", icon: Smartphone, color: "#E0B866" },
+  efectivo: { label: "Efectivo", icon: Banknote, color: "#7FA687" },
+  tarjeta: { label: "Tarjeta", icon: CreditCard, color: "#7BA0C4" },
+  transferencia: { label: "Transferencia", icon: Smartphone, color: "#D6AE5E" },
 };
 
 const PROPINA_OPCIONES = [0, 10, 15, 20];
@@ -81,12 +81,12 @@ function mesaOrderIndex(mesas, mesaId) {
 // "hay algo pendiente en cocina" (rojo), "ya está listo pero nadie lo ha
 // llevado a la mesa" (azul), "cuenta abierta, todo servido" (verde) y libre.
 function estadoVisualMesa(cuenta, ordersDeLaCuenta) {
-  if (!cuenta) return { tag: "Libre", bg: "#2E2840", color: "#9A93B0" };
+  if (!cuenta) return { tag: "Libre", bg: "#322F29", color: "#918B7D" };
   const enCocina = ordersDeLaCuenta.some((o) => o.estado === "pendiente" || o.estado === "preparando");
-  if (enCocina) return { tag: "En cocina", bg: "#D9737C", color: "#16131D" };
+  if (enCocina) return { tag: "En cocina", bg: "#CF7B6F", color: "#171614" };
   const listoSinServir = ordersDeLaCuenta.some((o) => o.estado === "listo");
-  if (listoSinServir) return { tag: "Listo para servir", bg: "#7EA6D6", color: "#16131D" };
-  return { tag: "Cuenta abierta", bg: "#7FAE8B", color: "#16131D" };
+  if (listoSinServir) return { tag: "Listo para servir", bg: "#7BA0C4", color: "#171614" };
+  return { tag: "Cuenta abierta", bg: "#7FA687", color: "#171614" };
 }
 
 /* ---------------- helpers ---------------- */
@@ -155,9 +155,9 @@ function elapsedLabel(ts) {
 }
 function urgencyColor(ts) {
   const mins = (Date.now() - ts) / 60000;
-  if (mins >= 10) return "#D9737C";
-  if (mins >= 5) return "#D9AE5C";
-  return "#7FAE8B";
+  if (mins >= 10) return "#CF7B6F";
+  if (mins >= 5) return "#D2A64E";
+  return "#7FA687";
 }
 function timeLabel(ts) {
   return new Date(ts).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
@@ -341,7 +341,7 @@ function exportarExcel(cuentas, orders, config, mesas) {
 
 /* ---------------- App ---------------- */
 
-const DEFAULT_CONFIG = { businessName: import.meta.env.VITE_NOMBRE_NEGOCIO || "Mi Negocio", usuarios: [], auditLog: [] };
+const DEFAULT_CONFIG = { businessName: import.meta.env.VITE_NOMBRE_NEGOCIO || "La Reserva Gastro Bar", usuarios: [], auditLog: [] };
 
 export default function App() {
   const [role, setRole] = useState("mesero");
@@ -589,7 +589,7 @@ function TopBar({ role, setRole, config, usuarioActual, onCambiarUsuario, online
       <div style={styles.brand}>
         <span style={styles.brandMark}>◆</span>
         <span style={styles.brandText}>{(config.businessName || "LA COMANDA").toUpperCase()}</span>
-        <span style={{ ...styles.syncDot, background: online ? "#7FAE8B" : "#D9737C" }} title={online ? "En línea" : "Sin conexión"} />
+        <span style={{ ...styles.syncDot, background: online ? "#7FA687" : "#CF7B6F" }} title={online ? "En línea" : "Sin conexión"} />
       </div>
       {usuarioActual && (
         <button style={styles.meseroChip} onClick={onCambiarUsuario}>
@@ -978,7 +978,7 @@ function MeseroView({ menu, orders, cuentas, usuarioActual, config, mesas, persi
                       ) : (
                         <>
                           <button style={styles.iconBtn} onClick={() => startEdit(o)} title="Modificar"><Pencil size={13} /></button>
-                          <button style={{ ...styles.iconBtn, color: "#D9737C" }} onClick={() => setConfirmCancelId(o.id)} title="Cancelar"><Ban size={13} /></button>
+                          <button style={{ ...styles.iconBtn, color: "#CF7B6F" }} onClick={() => setConfirmCancelId(o.id)} title="Cancelar"><Ban size={13} /></button>
                         </>
                       )}
                     </div>
@@ -1225,7 +1225,7 @@ function MenuEditor({ menu, persistMenu, config, persistConfig, actor, onClose }
                     >
                       <PauseCircle size={14} />
                     </button>
-                    <span style={{ ...styles.menuItemName, ...(item.agotado ? { textDecoration: "line-through", color: "#7F7899" } : {}) }}>{item.name}</span>
+                    <span style={{ ...styles.menuItemName, ...(item.agotado ? { textDecoration: "line-through", color: "#7A7467" } : {}) }}>{item.name}</span>
                     {editingItemId !== item.id && (
                       <button style={styles.precioEditableBtn} onClick={() => empezarEdicionItem(item)}>{money(item.price)} <Pencil size={10} /></button>
                     )}
@@ -1307,8 +1307,8 @@ function PlanoSalon({ mesas, cuentas, orders, editable, onTapMesa, onMoverMesa }
       {mesas.map((m, idx) => {
         const cuenta = cuentas.find((c) => mesaMatch(c.mesa, m.id) && c.estado === "abierta");
         const visual = estadoVisualMesa(cuenta, cuenta ? orders.filter((o) => o.cuentaId === cuenta.id) : []);
-        const bg = cuenta ? visual.bg : "#1F1B2B";
-        const color = cuenta ? visual.color : "#DAD3EC";
+        const bg = cuenta ? visual.bg : "#211F1C";
+        const color = cuenta ? visual.color : "#CFC9BB";
         const pos = arrastrando === m.id && posLive ? posLive : posDe(m, idx);
         return (
           <button
@@ -1319,7 +1319,7 @@ function PlanoSalon({ mesas, cuentas, orders, editable, onTapMesa, onMoverMesa }
               ...styles.planoMesaTile,
               left: `${pos.x}%`, top: `${pos.y}%`,
               background: bg, color,
-              borderColor: cuenta ? bg : "#3A3350",
+              borderColor: cuenta ? bg : "#3D3A33",
               cursor: editable ? "grab" : "pointer",
               touchAction: editable ? "none" : "auto",
               zIndex: arrastrando === m.id ? 2 : 1,
@@ -1499,7 +1499,7 @@ function CocinaView({ orders, saveOrder, mesas }) {
       )}
 
       {active.length === 0 ? (
-        <div style={styles.emptyKitchen}><Flame size={26} strokeWidth={1.5} color="#6E6785" /><div style={styles.emptyKitchenText}>Sin pedidos pendientes</div></div>
+        <div style={styles.emptyKitchen}><Flame size={26} strokeWidth={1.5} color="#645F55" /><div style={styles.emptyKitchenText}>Sin pedidos pendientes</div></div>
       ) : (
         <div style={styles.rail}>
           {active.map((o) => (
@@ -1522,7 +1522,7 @@ function CocinaView({ orders, saveOrder, mesas }) {
                 {o.estado === "preparando" && (
                   <button style={styles.ticketBackBtn} onClick={() => retroceder(o.id)} title="Volver a pendiente">◀</button>
                 )}
-                <button style={{ ...styles.ticketBtn, flex: 1, background: o.estado === "pendiente" ? "#D9AE5C" : "#7FAE8B" }} onClick={() => advance(o.id)}>
+                <button style={{ ...styles.ticketBtn, flex: 1, background: o.estado === "pendiente" ? "#D2A64E" : "#7FA687" }} onClick={() => advance(o.id)}>
                   {o.estado === "pendiente" ? <><Flame size={14} /> Empezar preparación</> : <><Check size={14} /> Marcar listo</>}
                 </button>
               </div>
@@ -1575,7 +1575,7 @@ function CajaView({ menu, orders, cuentas, saveCuenta, saveOrdersMap, turnos, tu
                 const Icon = meta.icon;
                 return (
                   <div key={key} style={styles.metodoBreakdownItem}>
-                    <Icon size={13} color="#7F7899" /><span style={styles.metodoBreakdownLabel}>{meta.label}</span><span style={styles.metodoBreakdownValue}>{money(porMetodoHoy[key] || 0)}</span>
+                    <Icon size={13} color="#7A7467" /><span style={styles.metodoBreakdownLabel}>{meta.label}</span><span style={styles.metodoBreakdownValue}>{money(porMetodoHoy[key] || 0)}</span>
                   </div>
                 );
               })}
@@ -1673,12 +1673,12 @@ function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, p
 
           <div style={styles.metodoResumenRow}>
             <div style={styles.metodoResumenItem}>
-              <CreditCard size={14} color="#7EA6D6" />
+              <CreditCard size={14} color="#7BA0C4" />
               <span style={styles.metodoResumenLabel}>Tarjeta</span>
               <span style={styles.metodoResumenValue}>{money(tarjetaEsperada)}</span>
             </div>
             <div style={styles.metodoResumenItem}>
-              <Smartphone size={14} color="#E0B866" />
+              <Smartphone size={14} color="#D6AE5E" />
               <span style={styles.metodoResumenLabel}>Transferencia</span>
               <span style={styles.metodoResumenValue}>{money(transferenciaEsperada)}</span>
             </div>
@@ -1704,7 +1704,7 @@ function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, p
               <div style={styles.closeConfirmText}>Cuenta el efectivo físico en caja y escríbelo aquí:</div>
               <CampoMonto placeholder="Efectivo contado" value={contado} onChange={setContado} />
               {contado !== "" && (
-                <div style={{ ...styles.diferenciaBox, background: diferencia === 0 ? "#1F3329" : diferencia > 0 ? "#3B3020" : "#3F2430" }}>
+                <div style={{ ...styles.diferenciaBox, background: diferencia === 0 ? "#22302A" : diferencia > 0 ? "#3A2F1C" : "#3C2623" }}>
                   {diferencia === 0 ? "Cuadra exacto ✓" : diferencia > 0 ? `Sobran ${money(diferencia)}` : `Faltan ${money(Math.abs(diferencia))}`}
                 </div>
               )}
@@ -1739,7 +1739,7 @@ function TurnoView({ turnos, turnoAbierto, saveTurno, orders, cuentas, config, p
             <div key={t.id} style={styles.turnoRowCol}>
               <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
                 <span style={styles.cierreDate}>{dateTimeLabel(t.aperturaTs)} → {timeLabel(t.cierreTs)}</span>
-                <span style={{ ...styles.turnoDiff, color: t.diferencia === 0 ? "#7FAE8B" : "#D9737C" }}>
+                <span style={{ ...styles.turnoDiff, color: t.diferencia === 0 ? "#7FA687" : "#CF7B6F" }}>
                   {t.diferencia === 0 ? "Cuadró" : t.diferencia > 0 ? `+${money(t.diferencia)}` : money(t.diferencia)}
                 </span>
               </div>
@@ -1949,17 +1949,17 @@ function PanelSenalesAlerta({ cuentas, turnos }) {
   return (
     <div style={{ marginTop: 24 }}>
       <button style={styles.canceladasToggle} onClick={() => setExpandido((v) => !v)}>
-        <AlertTriangle size={13} color={hayAlertas ? "#D9737C" : "#D9AE5C"} />
-        <span style={{ color: hayAlertas ? "#F0A3A8" : "#B9B2CC" }}>Señales de alerta (últimos 35 días){hayAlertas ? " — hay algo que revisar" : ""}</span>
+        <AlertTriangle size={13} color={hayAlertas ? "#CF7B6F" : "#D2A64E"} />
+        <span style={{ color: hayAlertas ? "#E3A097" : "#ADA798" }}>Señales de alerta (últimos 35 días){hayAlertas ? " — hay algo que revisar" : ""}</span>
         <span>{expandido ? "▲" : "▼"}</span>
       </button>
       {expandido && (
         <div style={{ marginTop: 8 }}>
           {filas.map((f) => (
-            <div key={f.nombre} style={{ ...styles.turnoRowCol, ...(f.alerta ? { background: "#3F2430", borderRadius: 8, padding: "8px 10px" } : {}) }}>
+            <div key={f.nombre} style={{ ...styles.turnoRowCol, ...(f.alerta ? { background: "#3C2623", borderRadius: 8, padding: "8px 10px" } : {}) }}>
               <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
                 <span style={styles.pagoRowEtiqueta}>{f.nombre}</span>
-                {f.alerta && <AlertTriangle size={13} color="#D9737C" />}
+                {f.alerta && <AlertTriangle size={13} color="#CF7B6F" />}
               </div>
               <div style={styles.turnoSubRow}>
                 {f.cancelaciones > 0 && <>· {f.cancelaciones} {f.cancelaciones === 1 ? "cancelación" : "cancelaciones"} ({money(f.montoCancelado)}) </>}
@@ -2056,7 +2056,7 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
       {usuarios.map((u) => (
         <div key={u.id} style={styles.usuarioRow}>
           <div style={styles.usuarioRowLeft}>
-            <UserCircle2 size={16} color="#9A93B0" />
+            <UserCircle2 size={16} color="#918B7D" />
             <span style={styles.pagoRowEtiqueta}>{u.nombre}</span>
             <span style={styles.rolBadge}>{rolesLabel(u)}</span>
           </div>
@@ -2082,7 +2082,7 @@ function GestionUsuarios({ config, persistConfig, usuarioActual }) {
                   <button style={styles.confirmNo} onClick={() => setConfirmDeleteId(null)}>No</button>
                 </>
               ) : (
-                <button style={{ ...styles.inlineLink, color: "#D9737C" }} onClick={() => setConfirmDeleteId(u.id)}>eliminar</button>
+                <button style={{ ...styles.inlineLink, color: "#CF7B6F" }} onClick={() => setConfirmDeleteId(u.id)}>eliminar</button>
               )
             )}
           </div>
@@ -2173,7 +2173,7 @@ function MetodoPills({ selected, onSelect }) {
         const Icon = meta.icon;
         const isSel = selected === key;
         return (
-          <button key={key} style={{ ...styles.metodoPill, ...(isSel ? { background: meta.color, color: "#16131D", border: `1px solid ${meta.color}` } : {}) }} onClick={() => onSelect(key)}>
+          <button key={key} style={{ ...styles.metodoPill, ...(isSel ? { background: meta.color, color: "#171614", border: `1px solid ${meta.color}` } : {}) }} onClick={() => onSelect(key)}>
             <Icon size={14} /> {meta.label}
           </button>
         );
@@ -2217,7 +2217,7 @@ function MesaCuentaCard({ cuenta, orders, saveCuenta, saveOrdersMap, turnoAbiert
       <div style={styles.vueltosBox}>
         <CampoMonto placeholder={`¿Con cuánto paga? (a cobrar ${money(monto)})`} value={efectivoRecibido} onChange={setEfectivoRecibido} />
         {efectivoRecibido !== "" && (
-          <div style={{ ...styles.diferenciaBox, background: vueltos >= 0 ? "#1F3329" : "#3F2430" }}>
+          <div style={{ ...styles.diferenciaBox, background: vueltos >= 0 ? "#22302A" : "#3C2623" }}>
             {vueltos >= 0 ? `Total a devolver: ${money(vueltos)}` : `Faltan ${money(Math.abs(vueltos))}`}
           </div>
         )}
@@ -2376,7 +2376,7 @@ function MesaCuentaCard({ cuenta, orders, saveCuenta, saveOrdersMap, turnoAbiert
                 Descuento ({cuenta.descuento.motivo}{cuenta.descuento.aplicadoPor ? ` · ${cuenta.descuento.aplicadoPor}` : ""})
                 {esAdmin && <button style={styles.inlineLink} onClick={quitarDescuento}>quitar</button>}
               </span>
-              <span style={{ color: "#D9737C" }}>−{money(cuenta.descuento.monto)}</span>
+              <span style={{ color: "#CF7B6F" }}>−{money(cuenta.descuento.monto)}</span>
             </div>
           ) : pagos.length === 0 ? (
             !esAdmin ? (
@@ -2544,7 +2544,7 @@ function MesaCuentaCard({ cuenta, orders, saveCuenta, saveOrdersMap, turnoAbiert
                   <div style={{ display: "flex", gap: 8 }}>
                     <button style={styles.cancelEditBtn} onClick={() => { setConfirmCancelarCuenta(false); setMotivoCancelacion(""); }}>Volver</button>
                     <button
-                      style={{ ...styles.sendBtn, flex: 1, background: "#D9737C", opacity: motivoCancelacion.trim() ? 1 : 0.4 }}
+                      style={{ ...styles.sendBtn, flex: 1, background: "#CF7B6F", opacity: motivoCancelacion.trim() ? 1 : 0.4 }}
                       disabled={!motivoCancelacion.trim()} onClick={cancelarCuenta}
                     >
                       <Ban size={14} /> Confirmar cancelación
@@ -2552,7 +2552,7 @@ function MesaCuentaCard({ cuenta, orders, saveCuenta, saveOrdersMap, turnoAbiert
                   </div>
                 </div>
               ) : (
-                <button style={{ ...styles.inlineLink, color: "#D9737C" }} onClick={() => setConfirmCancelarCuenta(true)}>Cancelar esta cuenta sin cobrar</button>
+                <button style={{ ...styles.inlineLink, color: "#CF7B6F" }} onClick={() => setConfirmCancelarCuenta(true)}>Cancelar esta cuenta sin cobrar</button>
               )}
             </div>
           )}
@@ -2599,7 +2599,7 @@ function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCom
   const PanelCanceladas = esAdmin && todasCanceladas.length > 0 && (
     <div style={styles.canceladasBox}>
       <button style={styles.canceladasToggle} onClick={() => setVerCanceladas((v) => !v)}>
-        <Ban size={13} color="#D9737C" />
+        <Ban size={13} color="#CF7B6F" />
         <span>
           {canceladas.length} {canceladas.length === 1 ? "cuenta cancelada" : "cuentas canceladas"} sin cobrar
           {!verTodasCanceladas ? ` (últimos ${CANCELADAS_RECIENTES_DIAS} días)` : ""} — {money(canceladas.reduce((s, c) => s + (c.montoCancelado || 0), 0))} en total
@@ -2615,7 +2615,7 @@ function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCom
             <div key={c.id} style={styles.canceladaRow}>
               <div style={styles.rowBetween}>
                 <span style={styles.cierreDate}>{dateTimeLabel(c.canceladaTs)} · {mesaNombre(mesas, c.mesa)}{c.mesero ? ` · abrió ${c.mesero}` : ""}</span>
-                <span style={{ ...styles.cierreTotal, color: "#D9737C" }}>{money(c.montoCancelado)}</span>
+                <span style={{ ...styles.cierreTotal, color: "#CF7B6F" }}>{money(c.montoCancelado)}</span>
               </div>
               <div style={styles.canceladaMotivo}>Canceló <b>{c.canceladaPor}</b>: "{c.motivoCancelacion}"</div>
             </div>
@@ -2657,11 +2657,11 @@ function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCom
           <div style={styles.chartBox}>
             <ResponsiveContainer width="100%" height={150}>
               <BarChart data={[...list].sort((a, b) => a.key.localeCompare(b.key))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3A3350" />
-                <XAxis dataKey="key" tick={{ fontSize: 11, fill: "#9A93B0" }} />
-                <YAxis tick={{ fontSize: 10, fill: "#9A93B0" }} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
-                <Tooltip formatter={(v) => money(v)} contentStyle={{ fontSize: 12, borderRadius: 8, backgroundColor: "#1F1B2B", border: "1px solid #3A3350", color: "#DAD3EC" }} />
-                <Bar dataKey="total" fill="#7FAE8B" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#3D3A33" />
+                <XAxis dataKey="key" tick={{ fontSize: 11, fill: "#918B7D" }} />
+                <YAxis tick={{ fontSize: 10, fill: "#918B7D" }} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
+                <Tooltip formatter={(v) => money(v)} contentStyle={{ fontSize: 12, borderRadius: 8, backgroundColor: "#211F1C", border: "1px solid #3D3A33", color: "#CFC9BB" }} />
+                <Bar dataKey="total" fill="#7FA687" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -2693,7 +2693,7 @@ function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCom
               <span style={styles.histRowSub}>
                 {m.dayKeys.length} {m.dayKeys.length === 1 ? "día" : "días"} con ventas
                 {delta !== null && (
-                  <span style={{ color: delta >= 0 ? "#7FAE8B" : "#D9737C", fontWeight: 700 }}> · {delta >= 0 ? "+" : ""}{delta}% vs {claveAñoAnterior}</span>
+                  <span style={{ color: delta >= 0 ? "#7FA687" : "#CF7B6F", fontWeight: 700 }}> · {delta >= 0 ? "+" : ""}{delta}% vs {claveAñoAnterior}</span>
                 )}
               </span>
               <span style={styles.histRowTotal}>{money(m.total)}</span>
@@ -2729,7 +2729,7 @@ function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCom
       <div style={{ marginTop: 12, marginBottom: 14, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
           <div style={styles.pageEyebrow}>{dayLabel(d.ts)}</div>
-          <div style={{ ...styles.cajaTotalValue, color: "#DAD3EC" }}>{money(d.total)}</div>
+          <div style={{ ...styles.cajaTotalValue, color: "#CFC9BB" }}>{money(d.total)}</div>
         </div>
         <button className="no-imprimir" style={styles.exportLink} onClick={() => window.print()}>🖨️ Imprimir</button>
       </div>
@@ -2891,7 +2891,7 @@ function ReportesView({ cuentas, orders, menu, usuarioActual }) {
           <div style={{ ...styles.catLabel, marginTop: 16 }}>RESUMEN FINANCIERO</div>
           <div style={styles.turnoBox}>
             <div style={styles.subtotalRow}><span>Consumo bruto (antes de descuentos)</span><span>{money(cuentaBrutaRango)}</span></div>
-            <div style={styles.subtotalRow}><span>Descuentos y cortesías aplicados</span><span style={{ color: "#D9737C" }}>−{money(descuentosRango)}</span></div>
+            <div style={styles.subtotalRow}><span>Descuentos y cortesías aplicados</span><span style={{ color: "#CF7B6F" }}>−{money(descuentosRango)}</span></div>
             <div style={styles.subtotalRow}><span>Propinas</span><span>+{money(propinasRango)}</span></div>
             <div style={{ ...styles.subtotalRow, ...styles.subtotalRowFinal }}><span>Total cobrado</span><span>{money(totalRango)}</span></div>
             {huboCostosCargados && (
@@ -2901,8 +2901,8 @@ function ReportesView({ cuentas, orders, menu, usuarioActual }) {
               </>
             )}
             <div style={styles.subtotalRow}>
-              <span style={{ color: canceladasRango.length > 0 ? "#D9737C" : undefined }}>Cuentas canceladas sin cobrar ({canceladasRango.length})</span>
-              <span style={{ color: canceladasRango.length > 0 ? "#D9737C" : undefined }}>{money(totalCanceladoRango)}</span>
+              <span style={{ color: canceladasRango.length > 0 ? "#CF7B6F" : undefined }}>Cuentas canceladas sin cobrar ({canceladasRango.length})</span>
+              <span style={{ color: canceladasRango.length > 0 ? "#CF7B6F" : undefined }}>{money(totalCanceladoRango)}</span>
             </div>
           </div>
         </>
@@ -2931,7 +2931,7 @@ function ReportesView({ cuentas, orders, menu, usuarioActual }) {
 
       {tiempoPromedioMin !== null && (
         <div style={styles.tiempoCocinaBox}>
-          <Clock size={14} color="#D9AE5C" />
+          <Clock size={14} color="#D2A64E" />
           <span>Tiempo promedio de cocina: <b>{tiempoPromedioMin} min</b> ({ordenesConTiempo.length} pedidos)</span>
         </div>
       )}
@@ -2943,11 +2943,11 @@ function ReportesView({ cuentas, orders, menu, usuarioActual }) {
         ) : (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={dataHora}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#3A3350" />
-              <XAxis dataKey="hora" tick={{ fontSize: 10, fill: "#9A93B0" }} interval={1} />
-              <YAxis tick={{ fontSize: 10, fill: "#9A93B0" }} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
-              <Tooltip formatter={(v) => money(v)} contentStyle={{ fontSize: 12, borderRadius: 8, backgroundColor: "#1F1B2B", border: "1px solid #3A3350", color: "#DAD3EC" }} />
-              <Bar dataKey="total" fill="#D9737C" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#3D3A33" />
+              <XAxis dataKey="hora" tick={{ fontSize: 10, fill: "#918B7D" }} interval={1} />
+              <YAxis tick={{ fontSize: 10, fill: "#918B7D" }} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
+              <Tooltip formatter={(v) => money(v)} contentStyle={{ fontSize: 12, borderRadius: 8, backgroundColor: "#211F1C", border: "1px solid #3D3A33", color: "#CFC9BB" }} />
+              <Bar dataKey="total" fill="#CF7B6F" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -2969,7 +2969,7 @@ function ReportesView({ cuentas, orders, menu, usuarioActual }) {
         meserosOrdenados.map(([nombre, d]) => (
           <div key={nombre} style={styles.meseroStatRow}>
             <div style={styles.meseroStatLeft}>
-              <UserCircle2 size={14} color="#9A93B0" />
+              <UserCircle2 size={14} color="#918B7D" />
               <span style={styles.pagoRowEtiqueta}>{nombre}</span>
               <span style={styles.meseroStatSub}>{d.cuentas} {d.cuentas === 1 ? "cuenta" : "cuentas"}{d.propinas > 0 ? ` · ${money(d.propinas)} propina` : ""}</span>
             </div>
@@ -2988,275 +2988,275 @@ const fontImports = `
 `;
 
 const styles = {
-  app: { colorScheme: "dark", fontFamily: "'Inter', sans-serif", height: "100dvh", minHeight: "100vh", background: "#16131D", display: "flex", flexDirection: "column", overflow: "hidden", width: "100%" },
-  loadingScreen: { height: "100dvh", minHeight: "100vh", background: "#110E17", display: "flex", alignItems: "center", justifyContent: "center" },
-  loadingStamp: { fontFamily: "'IBM Plex Mono', monospace", color: "#8FB59A", letterSpacing: 2, fontSize: 13 },
-  topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#0F0C15", flexShrink: 0, gap: 8, flexWrap: "wrap" },
+  app: { colorScheme: "dark", fontFamily: "'Inter', sans-serif", height: "100dvh", minHeight: "100vh", background: "#171614", display: "flex", flexDirection: "column", overflow: "hidden", width: "100%" },
+  loadingScreen: { height: "100dvh", minHeight: "100vh", background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center" },
+  loadingStamp: { fontFamily: "'IBM Plex Mono', monospace", color: "#87AA90", letterSpacing: 2, fontSize: 13 },
+  topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#0E0D0B", flexShrink: 0, gap: 8, flexWrap: "wrap" },
   brand: { display: "flex", alignItems: "center", gap: 8 },
-  brandMark: { color: "#D9737C", fontSize: 14 },
-  brandText: { fontFamily: "'Oswald', sans-serif", color: "#DAD3EC", letterSpacing: 2, fontSize: 15, fontWeight: 600 },
+  brandMark: { color: "#D2A64E", fontSize: 14 },
+  brandText: { fontFamily: "'Oswald', sans-serif", color: "#CFC9BB", letterSpacing: 2, fontSize: 15, fontWeight: 600 },
   syncDot: { width: 7, height: 7, borderRadius: "50%", display: "inline-block", marginLeft: 2 },
-  meseroChip: { display: "flex", alignItems: "center", gap: 5, background: "#262133", color: "#CBC3DD", border: "none", borderRadius: 20, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
-  rolBadge: { marginLeft: "auto", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#E0B866", background: "#3B3020", padding: "2px 8px", borderRadius: 10, fontWeight: 700 },
-  roleSwitch: { display: "flex", background: "#262133", borderRadius: 10, padding: 3, gap: 2 },
-  roleBtn: { display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Inter', sans-serif", border: "none", borderRadius: 8, background: "transparent", color: "#7F7899", cursor: "pointer" },
-  roleBtnActive: { background: "#DAD3EC", color: "#16131D" },
-  roleBtnActiveDark: { background: "#6E6785", color: "#EDE9F7" },
+  meseroChip: { display: "flex", alignItems: "center", gap: 5, background: "#25231F", color: "#C4BCA4", border: "none", borderRadius: 20, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
+  rolBadge: { marginLeft: "auto", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#D6AE5E", background: "#3A2F1C", padding: "2px 8px", borderRadius: 10, fontWeight: 700 },
+  roleSwitch: { display: "flex", background: "#25231F", borderRadius: 10, padding: 3, gap: 2 },
+  roleBtn: { display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Inter', sans-serif", border: "none", borderRadius: 8, background: "transparent", color: "#7A7467", cursor: "pointer" },
+  roleBtnActive: { background: "#CFC9BB", color: "#171614" },
+  roleBtnActiveDark: { background: "#645F55", color: "#E0DACB" },
 
   screen: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
-  screenDark: { flex: 1, display: "flex", flexDirection: "column", background: "#110E17", overflow: "hidden", transition: "background 0.2s" },
-  screenFlash: { background: "#2A1A22" },
+  screenDark: { flex: 1, display: "flex", flexDirection: "column", background: "#0F0E0C", overflow: "hidden", transition: "background 0.2s" },
+  screenFlash: { background: "#261C19" },
 
   loginWrap: { padding: 24, display: "flex", flexDirection: "column", gap: 10, maxWidth: 420, margin: "0 auto", width: "100%" },
   loginList: { display: "flex", flexDirection: "column", gap: 8 },
-  loginBtn: { display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#DAD3EC", cursor: "pointer" },
+  loginBtn: { display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#CFC9BB", cursor: "pointer" },
   loginNewRow: { display: "flex", gap: 8, marginTop: 6 },
 
-  pageEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: "#D9AE5C", fontWeight: 600, textTransform: "uppercase" },
-  pageTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#DAD3EC", marginTop: 2, marginBottom: 4 },
-  cajaEmptyText: { fontSize: 13, color: "#9A93B0", lineHeight: 1.5, padding: "8px 0" },
-  editInput: { width: "100%", padding: "11px 12px", borderRadius: 9, border: "1px solid #3A3350", fontSize: 14, fontFamily: "'Inter', sans-serif", color: "#DAD3EC", background: "#1F1B2B", boxSizing: "border-box" },
-  addItemBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", background: "#DAD3EC", color: "#16131D", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer", width: "100%" },
-  backBtn: { alignSelf: "flex-start", background: "transparent", border: "none", color: "#9A93B0", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "6px 0" },
-  pinError: { fontSize: 12.5, color: "#D9737C", fontWeight: 600 },
+  pageEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: "#D2A64E", fontWeight: 600, textTransform: "uppercase" },
+  pageTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#CFC9BB", marginTop: 2, marginBottom: 4 },
+  cajaEmptyText: { fontSize: 13, color: "#918B7D", lineHeight: 1.5, padding: "8px 0" },
+  editInput: { width: "100%", padding: "11px 12px", borderRadius: 9, border: "1px solid #3D3A33", fontSize: 14, fontFamily: "'Inter', sans-serif", color: "#CFC9BB", background: "#211F1C", boxSizing: "border-box" },
+  addItemBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", background: "#CFC9BB", color: "#171614", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer", width: "100%" },
+  backBtn: { alignSelf: "flex-start", background: "transparent", border: "none", color: "#918B7D", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "6px 0" },
+  pinError: { fontSize: 12.5, color: "#CF7B6F", fontWeight: 600 },
 
-  subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #3A3350", flexShrink: 0, gap: 8 },
+  subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #3D3A33", flexShrink: 0, gap: 8 },
   mesaTitleWrap: { display: "flex", flexDirection: "column", alignItems: "center", flex: 1 },
-  mesaEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1.5, color: "#7F7899", fontWeight: 600 },
-  mesaTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#DAD3EC" },
-  cuentaOpenSub: { fontSize: 11, color: "#7FAE8B", fontWeight: 600, marginTop: 2 },
-  mesaActionBtn: { width: 34, height: 34, borderRadius: 9, border: "1px solid #3A3350", background: "#1F1B2B", color: "#DAD3EC", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
-  mesaActionPanel: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 8, background: "#262133", borderBottom: "1px solid #3A3350" },
-  modoChoiceBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 10px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 9, fontSize: 13, fontWeight: 600, color: "#DAD3EC", cursor: "pointer" },
-  closeConfirmText: { fontSize: 12.5, color: "#B9B2CC", lineHeight: 1.5 },
+  mesaEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1.5, color: "#7A7467", fontWeight: 600 },
+  mesaTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#CFC9BB" },
+  cuentaOpenSub: { fontSize: 11, color: "#7FA687", fontWeight: 600, marginTop: 2 },
+  mesaActionBtn: { width: 34, height: 34, borderRadius: 9, border: "1px solid #3D3A33", background: "#211F1C", color: "#CFC9BB", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  mesaActionPanel: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 8, background: "#292622", borderBottom: "1px solid #3D3A33" },
+  modoChoiceBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 10px", background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 9, fontSize: 13, fontWeight: 600, color: "#CFC9BB", cursor: "pointer" },
+  closeConfirmText: { fontSize: 12.5, color: "#ADA798", lineHeight: 1.5 },
   mesaPickerRow: { display: "flex", flexWrap: "wrap", gap: 8 },
-  mesaPickerBtn: { padding: "9px 14px", background: "#DAD3EC", color: "#16131D", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" },
-  cancelEditBtn: { padding: "11px 14px", background: "transparent", color: "#9A93B0", border: "1px solid #3A3350", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
+  mesaPickerBtn: { padding: "9px 14px", background: "#CFC9BB", color: "#171614", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  cancelEditBtn: { padding: "11px 14px", background: "transparent", color: "#918B7D", border: "1px solid #3D3A33", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer" },
 
-  ticketStripCol: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6, background: "#262133", borderBottom: "1px solid #3A3350" },
+  ticketStripCol: { padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6, background: "#292622", borderBottom: "1px solid #3D3A33" },
   miniTicketRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  miniTicket: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#B9B2CC", flex: 1, flexWrap: "wrap" },
+  miniTicket: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#ADA798", flex: 1, flexWrap: "wrap" },
   stateDot: { width: 7, height: 7, borderRadius: "50%", display: "inline-block" },
-  miniTicketTime: { marginLeft: "auto", color: "#7F7899", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5 },
-  editedTag: { fontSize: 9.5, fontWeight: 700, color: "#E0B866", background: "#3B3020", padding: "1px 6px", borderRadius: 8, textTransform: "uppercase" },
+  miniTicketTime: { marginLeft: "auto", color: "#7A7467", fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5 },
+  editedTag: { fontSize: 9.5, fontWeight: 700, color: "#D6AE5E", background: "#3A2F1C", padding: "1px 6px", borderRadius: 8, textTransform: "uppercase" },
   miniTicketActions: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
-  marcarServidoBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", background: "#7EA6D6", color: "#16131D", border: "none", borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: "pointer" },
-  confirmText: { fontSize: 11.5, color: "#B9B2CC", marginRight: 2 },
-  confirmYes: { padding: "5px 10px", background: "#7FAE8B", color: "#16131D", border: "none", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
-  confirmNo: { padding: "5px 10px", background: "transparent", color: "#9A93B0", border: "1px solid #3A3350", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
-  iconBtn: { width: 26, height: 26, borderRadius: 7, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
-  miniTicketTotal: { fontSize: 12, color: "#B9B2CC", paddingTop: 2 },
-  editingBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#3B3020", color: "#E0B866", fontSize: 12, fontWeight: 600 },
-  sentBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#1F3329", color: "#7FAE8B", fontSize: 12, fontWeight: 600 },
-  repeatBtn: { margin: "10px 16px 0", padding: "10px", background: "#1F1B2B", border: "1px dashed #4A4263", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#E0B866", cursor: "pointer" },
+  marcarServidoBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", background: "#7BA0C4", color: "#171614", border: "none", borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: "pointer" },
+  confirmText: { fontSize: 11.5, color: "#ADA798", marginRight: 2 },
+  confirmYes: { padding: "5px 10px", background: "#7FA687", color: "#171614", border: "none", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  confirmNo: { padding: "5px 10px", background: "transparent", color: "#918B7D", border: "1px solid #3D3A33", borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  iconBtn: { width: 26, height: 26, borderRadius: 7, border: "1px solid #3D3A33", background: "#211F1C", color: "#ADA798", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  miniTicketTotal: { fontSize: 12, color: "#ADA798", paddingTop: 2 },
+  editingBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#3A2F1C", color: "#D6AE5E", fontSize: 12, fontWeight: 600 },
+  sentBanner: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#22302A", color: "#7FA687", fontSize: 12, fontWeight: 600 },
+  repeatBtn: { margin: "10px 16px 0", padding: "10px", background: "#211F1C", border: "1px dashed #4E4A40", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#D6AE5E", cursor: "pointer" },
 
   catPillsWrap: { padding: "10px 16px 6px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 },
-  searchInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #3A3350", fontSize: 13.5, background: "#1F1B2B", color: "#DAD3EC" },
+  searchInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #3D3A33", fontSize: 13.5, background: "#211F1C", color: "#CFC9BB" },
   catPills: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 },
-  catPill: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 20, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", flexShrink: 0 },
-  catPillActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
-  catPillBadge: { background: "#D9737C", color: "#16131D", fontSize: 10, fontWeight: 700, borderRadius: 8, padding: "1px 6px" },
+  catPill: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 20, border: "1px solid #3D3A33", background: "#211F1C", color: "#ADA798", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", flexShrink: 0 },
+  catPillActive: { background: "#CFC9BB", color: "#171614", border: "1px solid #CFC9BB" },
+  catPillBadge: { background: "#CF7B6F", color: "#171614", fontSize: 10, fontWeight: 700, borderRadius: 8, padding: "1px 6px" },
 
   menuScroll: { flex: 1, overflowY: "auto", padding: "8px 16px 16px" },
-  menuRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 0", borderBottom: "1px solid #2E2840" },
-  menuItemName: { fontSize: 14, fontWeight: 600, color: "#DAD3EC" },
-  agotadoTag: { fontSize: 9.5, fontWeight: 700, color: "#D9737C", background: "#3F2430", padding: "1px 6px", borderRadius: 8, marginLeft: 4 },
-  menuItemCat: { fontSize: 11, color: "#7F7899", marginTop: 1 },
-  menuItemPrice: { fontSize: 12.5, color: "#9A93B0", marginTop: 2 },
-  itemNoteInput: { marginTop: 4, padding: "6px 8px", fontSize: 11.5, borderRadius: 7, border: "1px solid #3A3350", width: "90%" },
-  itemNoteBtn: { display: "flex", alignItems: "center", gap: 4, marginTop: 4, background: "transparent", border: "none", color: "#D9AE5C", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: 0 },
+  menuRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 0", borderBottom: "1px solid #322F29" },
+  menuItemName: { fontSize: 14, fontWeight: 600, color: "#CFC9BB" },
+  agotadoTag: { fontSize: 9.5, fontWeight: 700, color: "#CF7B6F", background: "#3C2623", padding: "1px 6px", borderRadius: 8, marginLeft: 4 },
+  menuItemCat: { fontSize: 11, color: "#7A7467", marginTop: 1 },
+  menuItemPrice: { fontSize: 12.5, color: "#918B7D", marginTop: 2 },
+  itemNoteInput: { marginTop: 4, padding: "6px 8px", fontSize: 11.5, borderRadius: 7, border: "1px solid #3D3A33", width: "90%" },
+  itemNoteBtn: { display: "flex", alignItems: "center", gap: 4, marginTop: 4, background: "transparent", border: "none", color: "#D2A64E", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: 0 },
   stepper: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
-  stepBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid #3A3350", background: "#1F1B2B", color: "#DAD3EC", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
-  stepBtnPlus: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
-  stepVal: { fontSize: 14, fontWeight: 700, color: "#DAD3EC", minWidth: 16, textAlign: "center" },
-  noResults: { textAlign: "center", color: "#7F7899", fontSize: 13, padding: "20px 0" },
+  stepBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid #3D3A33", background: "#211F1C", color: "#CFC9BB", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  stepBtnPlus: { background: "#CFC9BB", color: "#171614", border: "1px solid #CFC9BB" },
+  stepVal: { fontSize: 14, fontWeight: 700, color: "#CFC9BB", minWidth: 16, textAlign: "center" },
+  noResults: { textAlign: "center", color: "#7A7467", fontSize: 13, padding: "20px 0" },
 
-  orderBar: { display: "flex", flexDirection: "column", gap: 8, padding: "10px 16px 14px", borderTop: "1px solid #3A3350", flexShrink: 0, background: "#16131D" },
-  noteInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #3A3350", fontSize: 13, background: "#1F1B2B" },
-  sendBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 14px", background: "#D9737C", color: "#16131D", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  orderBar: { display: "flex", flexDirection: "column", gap: 8, padding: "10px 16px 14px", borderTop: "1px solid #3D3A33", flexShrink: 0, background: "#171614" },
+  noteInput: { padding: "10px 12px", borderRadius: 9, border: "1px solid #3D3A33", fontSize: 13, background: "#211F1C" },
+  sendBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 14px", background: "#CF7B6F", color: "#171614", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer" },
 
   mesaGridHeader: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "16px 16px 8px" },
   vistaMesasSwitch: { display: "flex", gap: 6, padding: "0 16px 10px" },
-  vistaMesasBtn: { padding: "6px 12px", borderRadius: 20, border: "1px solid #3A3350", background: "#1F1B2B", color: "#9A93B0", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
-  vistaMesasBtnActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
-  planoContainer: { position: "relative", width: "100%", paddingTop: "70%", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 14 },
+  vistaMesasBtn: { padding: "6px 12px", borderRadius: 20, border: "1px solid #3D3A33", background: "#211F1C", color: "#918B7D", fontSize: 11.5, fontWeight: 600, cursor: "pointer" },
+  vistaMesasBtnActive: { background: "#CFC9BB", color: "#171614", border: "1px solid #CFC9BB" },
+  planoContainer: { position: "relative", width: "100%", paddingTop: "70%", background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 14 },
   planoMesaTile: { position: "absolute", transform: "translate(-50%, -50%)", width: 74, height: 74, borderRadius: 14, border: "2px solid", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, textAlign: "center", padding: 4, lineHeight: 1.2, boxShadow: "0 2px 6px rgba(0,0,0,0.08)", userSelect: "none", WebkitUserSelect: "none" },
-  planoVacio: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#7F7899", fontSize: 12.5 },
-  editMenuBtn: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#DAD3EC", cursor: "pointer" },
+  planoVacio: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#7A7467", fontSize: 12.5 },
+  editMenuBtn: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "#CFC9BB", cursor: "pointer" },
   mesaGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "8px 16px 16px", overflowY: "auto" },
-  mesaCard: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "18px 16px", background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 14, cursor: "pointer", minHeight: 100 },
-  mesaCardNum: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#DAD3EC", lineHeight: 1.15, wordBreak: "break-word" },
-  mesaReorderBtn: { width: 22, height: 20, fontSize: 9, lineHeight: 1, border: "1px solid #3A3350", borderRadius: 5, background: "#1F1B2B", color: "#9A93B0", cursor: "pointer" },
+  mesaCard: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "18px 16px", background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 14, cursor: "pointer", minHeight: 100 },
+  mesaCardNum: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#CFC9BB", lineHeight: 1.15, wordBreak: "break-word" },
+  mesaReorderBtn: { width: 22, height: 20, fontSize: 9, lineHeight: 1, border: "1px solid #3D3A33", borderRadius: 5, background: "#211F1C", color: "#918B7D", cursor: "pointer" },
   mesaCardTag: { fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8, textTransform: "uppercase", letterSpacing: 0.4 },
-  mesaCardSince: { fontSize: 10.5, color: "#7F7899" },
+  mesaCardSince: { fontSize: 10.5, color: "#7A7467" },
 
-  addItemCard: { display: "flex", flexDirection: "column", gap: 8, padding: 14, background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 12, marginBottom: 16 },
-  catLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.2, color: "#7F7899", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" },
-  editRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #2E2840" },
-  menuEditItemBlock: { borderBottom: "1px solid #2E2840" },
-  costoPillBtn: { display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: "#D9AE5C", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: "0 0 8px 32px" },
-  precioEditableBtn: { display: "flex", alignItems: "center", gap: 3, background: "#262133", border: "none", borderRadius: 7, padding: "3px 8px", fontSize: 12.5, fontWeight: 700, color: "#DAD3EC", cursor: "pointer" },
+  addItemCard: { display: "flex", flexDirection: "column", gap: 8, padding: 14, background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 12, marginBottom: 16 },
+  catLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.2, color: "#7A7467", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" },
+  editRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #322F29" },
+  menuEditItemBlock: { borderBottom: "1px solid #322F29" },
+  costoPillBtn: { display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: "#D2A64E", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: "0 0 8px 32px" },
+  precioEditableBtn: { display: "flex", alignItems: "center", gap: 3, background: "#292622", border: "none", borderRadius: 7, padding: "3px 8px", fontSize: 12.5, fontWeight: 700, color: "#CFC9BB", cursor: "pointer" },
   costoEditRow: { display: "flex", alignItems: "center", gap: 6, padding: "0 0 10px 32px" },
-  agotadoToggle: { width: 26, height: 26, borderRadius: 7, border: "1px solid #3A3350", background: "#1F1B2B", color: "#7F7899", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
-  agotadoToggleActive: { background: "#3F2430", color: "#D9737C", border: "1px solid #D9737C" },
-  deleteBtn: { width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: "#D9737C", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
+  agotadoToggle: { width: 26, height: 26, borderRadius: 7, border: "1px solid #3D3A33", background: "#211F1C", color: "#7A7467", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
+  agotadoToggleActive: { background: "#3C2623", color: "#CF7B6F", border: "1px solid #CF7B6F" },
+  deleteBtn: { width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", color: "#CF7B6F", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 },
 
   kdsHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 },
-  kdsEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.5, color: "#8FB59A", fontWeight: 600 },
-  kdsTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#DAD3EC", marginTop: 2 },
-  kdsCount: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#D9737C" },
+  kdsEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: 1.5, color: "#87AA90", fontWeight: 600 },
+  kdsTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 22, fontWeight: 700, color: "#CFC9BB", marginTop: 2 },
+  kdsCount: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#CF7B6F" },
   emptyKitchen: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 },
-  emptyKitchenText: { color: "#6E6785", fontSize: 13, fontWeight: 600 },
+  emptyKitchenText: { color: "#645F55", fontSize: 13, fontWeight: 600 },
   rail: { flex: 1, overflowX: "auto", display: "flex", gap: 12, padding: "0 20px 20px", alignItems: "flex-start" },
-  ticket: { background: "#1C1826", borderRadius: 12, borderLeft: "4px solid #D9737C", padding: 14, minWidth: 240, maxWidth: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 },
+  ticket: { background: "#1B1916", borderRadius: 12, borderLeft: "4px solid #CF7B6F", padding: 14, minWidth: 240, maxWidth: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 },
   ticketHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  ticketMesa: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#DAD3EC", display: "flex", alignItems: "center", gap: 6 },
-  editedBadge: { fontSize: 9, fontWeight: 700, color: "#DAD3EC", background: "#D9AE5C", padding: "1px 6px", borderRadius: 6 },
+  ticketMesa: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#CFC9BB", display: "flex", alignItems: "center", gap: 6 },
+  editedBadge: { fontSize: 9, fontWeight: 700, color: "#CFC9BB", background: "#D2A64E", padding: "1px 6px", borderRadius: 6 },
   ticketTime: { fontSize: 12, display: "flex", alignItems: "center" },
-  ticketExactTime: { fontSize: 10.5, color: "#7F7899" },
-  ticketDivider: { height: 1, background: "#2D2740", margin: "6px 0" },
+  ticketExactTime: { fontSize: 10.5, color: "#7A7467" },
+  ticketDivider: { height: 1, background: "#2C2924", margin: "6px 0" },
   ticketLine: { display: "flex", gap: 8, padding: "3px 0" },
-  ticketQty: { color: "#D9737C", fontWeight: 700, fontSize: 13, minWidth: 24 },
-  ticketItemName: { color: "#DAD3EC", fontSize: 13 },
-  ticketItemNote: { color: "#D9AE5C", fontSize: 11.5, paddingLeft: 32, fontStyle: "italic" },
-  ticketNote: { color: "#CBC3DD", fontSize: 12, fontStyle: "italic", marginTop: 4 },
-  ticketBtn: { marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", border: "none", borderRadius: 8, color: "#16131D", fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
-  ticketBackBtn: { marginTop: 6, width: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "#2D2740", border: "none", borderRadius: 8, color: "#CBC3DD", fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  ticketQty: { color: "#CF7B6F", fontWeight: 700, fontSize: 13, minWidth: 24 },
+  ticketItemName: { color: "#CFC9BB", fontSize: 13 },
+  ticketItemNote: { color: "#D2A64E", fontSize: 11.5, paddingLeft: 32, fontStyle: "italic" },
+  ticketNote: { color: "#C4BCA4", fontSize: 12, fontStyle: "italic", marginTop: 4 },
+  ticketBtn: { marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", border: "none", borderRadius: 8, color: "#171614", fontSize: 12.5, fontWeight: 700, cursor: "pointer" },
+  ticketBackBtn: { marginTop: 6, width: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "#2C2924", border: "none", borderRadius: 8, color: "#C4BCA4", fontSize: 14, fontWeight: 700, cursor: "pointer" },
   recienListosRow: { display: "flex", gap: 8, overflowX: "auto", padding: "0 20px 12px", flexShrink: 0 },
-  recienListoChip: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#7EA6D6", color: "#16131D", border: "none", borderRadius: 20, fontSize: 11.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 },
+  recienListoChip: { display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#7BA0C4", color: "#171614", border: "none", borderRadius: 20, fontSize: 11.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 },
 
   cajaTabSwitch: { display: "flex", gap: 6, padding: "0 16px 12px", flexShrink: 0, overflowX: "auto" },
-  cajaTabBtn: { padding: "8px 13px", borderRadius: 20, border: "1px solid #3A3350", background: "#1F1B2B", color: "#9A93B0", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" },
-  cajaTabBtnActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
-  cajaTotalCard: { padding: 16, background: "#2A2340", borderRadius: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 4 },
-  cajaTotalLabel: { fontSize: 11.5, color: "#7F7899", fontWeight: 600 },
-  cajaTotalValue: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#DAD3EC" },
-  cajaTotalValue2: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#DAD3EC", display: "flex", flexDirection: "column", gap: 2, margin: "8px 0" },
+  cajaTabBtn: { padding: "8px 13px", borderRadius: 20, border: "1px solid #3D3A33", background: "#211F1C", color: "#918B7D", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" },
+  cajaTabBtnActive: { background: "#CFC9BB", color: "#171614", border: "1px solid #CFC9BB" },
+  cajaTotalCard: { padding: 16, background: "#2A2722", borderRadius: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 4 },
+  cajaTotalLabel: { fontSize: 11.5, color: "#7A7467", fontWeight: 600 },
+  cajaTotalValue: { fontFamily: "'Oswald', sans-serif", fontSize: 30, fontWeight: 700, color: "#CFC9BB" },
+  cajaTotalValue2: { fontFamily: "'Oswald', sans-serif", fontSize: 26, fontWeight: 700, color: "#CFC9BB", display: "flex", flexDirection: "column", gap: 2, margin: "8px 0" },
   metodoBreakdownRow: { display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" },
   metodoBreakdownItem: { display: "flex", alignItems: "center", gap: 5 },
-  metodoBreakdownLabel: { fontSize: 11, color: "#7F7899" },
-  metodoBreakdownValue: { fontSize: 12, color: "#DAD3EC", fontWeight: 700 },
-  warnBanner: { display: "flex", alignItems: "center", gap: 6, padding: "10px 12px", background: "#3B3020", color: "#E0B866", borderRadius: 10, fontSize: 12, fontWeight: 600, marginBottom: 12 },
-  errorGuardadoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#D9737C", color: "#16131D", fontSize: 12.5, fontWeight: 600, flexShrink: 0 },
-  avisoListoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#7FAE8B", color: "#16131D", fontSize: 12.5, fontWeight: 700, flexShrink: 0 },
-  avisoNotifBanner: { display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: "#0F0C15", color: "#CBC3DD", fontSize: 11.5, flexShrink: 0 },
-  avisoNotifBtn: { padding: "6px 12px", background: "#D9AE5C", color: "#16131D", border: "none", borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
-  avisoNotifCerrar: { background: "transparent", border: "none", color: "#CBC3DD", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
-  errorGuardadoCerrar: { background: "transparent", border: "none", color: "#16131D", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
-  goHistLink: { textAlign: "center", padding: "12px 0", color: "#D9AE5C", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+  metodoBreakdownLabel: { fontSize: 11, color: "#7A7467" },
+  metodoBreakdownValue: { fontSize: 12, color: "#CFC9BB", fontWeight: 700 },
+  warnBanner: { display: "flex", alignItems: "center", gap: 6, padding: "10px 12px", background: "#3A2F1C", color: "#D6AE5E", borderRadius: 10, fontSize: 12, fontWeight: 600, marginBottom: 12 },
+  errorGuardadoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#CF7B6F", color: "#171614", fontSize: 12.5, fontWeight: 600, flexShrink: 0 },
+  avisoListoBanner: { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#7FA687", color: "#171614", fontSize: 12.5, fontWeight: 700, flexShrink: 0 },
+  avisoNotifBanner: { display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: "#0E0D0B", color: "#C4BCA4", fontSize: 11.5, flexShrink: 0 },
+  avisoNotifBtn: { padding: "6px 12px", background: "#D2A64E", color: "#171614", border: "none", borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
+  avisoNotifCerrar: { background: "transparent", border: "none", color: "#C4BCA4", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
+  errorGuardadoCerrar: { background: "transparent", border: "none", color: "#171614", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "0 4px" },
+  goHistLink: { textAlign: "center", padding: "12px 0", color: "#D2A64E", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
 
-  turnoBox: { display: "flex", flexDirection: "column", gap: 8, padding: 16, background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 14, marginBottom: 14 },
-  turnoEsperadoLabel: { fontSize: 11, fontWeight: 500, color: "#9A93B0", textTransform: "none" },
-  margenRow: { fontSize: 11.5, color: "#8FB59A", marginTop: 4 },
-  tiempoCocinaBox: { display: "flex", alignItems: "center", gap: 6, background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#B9B2CC" },
+  turnoBox: { display: "flex", flexDirection: "column", gap: 8, padding: 16, background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 14, marginBottom: 14 },
+  turnoEsperadoLabel: { fontSize: 11, fontWeight: 500, color: "#918B7D", textTransform: "none" },
+  margenRow: { fontSize: 11.5, color: "#87AA90", marginTop: 4 },
+  tiempoCocinaBox: { display: "flex", alignItems: "center", gap: 6, background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#ADA798" },
   reportePrintHeader: { marginBottom: 14 },
-  reportePrintTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#DAD3EC" },
-  reportePrintSub: { fontSize: 11, color: "#9A93B0", marginTop: 2 },
-  closeCajaBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", background: "#D9737C", color: "#16131D", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: "pointer" },
+  reportePrintTitle: { fontFamily: "'Oswald', sans-serif", fontSize: 20, fontWeight: 700, color: "#CFC9BB" },
+  reportePrintSub: { fontSize: 11, color: "#918B7D", marginTop: 2 },
+  closeCajaBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", background: "#CF7B6F", color: "#171614", border: "none", borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: "pointer" },
   closeConfirmBox: { display: "flex", flexDirection: "column", gap: 8 },
-  diferenciaBox: { padding: "8px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, color: "#B9B2CC" },
+  diferenciaBox: { padding: "8px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, color: "#ADA798" },
   vueltosBox: { display: "flex", flexDirection: "column", gap: 6 },
-  turnoRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #2E2840", gap: 8 },
-  turnoRowCol: { borderBottom: "1px solid #2E2840", padding: "8px 0" },
-  turnoSubRow: { fontSize: 11, color: "#9A93B0", marginTop: 2 },
-  turnoObsRow: { fontSize: 11.5, color: "#E0B866", fontStyle: "italic", marginTop: 3 },
+  turnoRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #322F29", gap: 8 },
+  turnoRowCol: { borderBottom: "1px solid #322F29", padding: "8px 0" },
+  turnoSubRow: { fontSize: 11, color: "#918B7D", marginTop: 2 },
+  turnoObsRow: { fontSize: 11.5, color: "#D6AE5E", fontStyle: "italic", marginTop: 3 },
   metodoResumenRow: { display: "flex", gap: 16, margin: "10px 0 2px", flexWrap: "wrap" },
   metodoResumenItem: { display: "flex", alignItems: "center", gap: 5 },
-  metodoResumenLabel: { fontSize: 11.5, color: "#9A93B0" },
-  metodoResumenValue: { fontSize: 12.5, color: "#DAD3EC", fontWeight: 700 },
-  cierreDate: { fontSize: 11.5, color: "#9A93B0" },
+  metodoResumenLabel: { fontSize: 11.5, color: "#918B7D" },
+  metodoResumenValue: { fontSize: 12.5, color: "#CFC9BB", fontWeight: 700 },
+  cierreDate: { fontSize: 11.5, color: "#918B7D" },
   turnoDiff: { fontSize: 12, fontWeight: 700 },
-  lockedNote: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#7F7899", padding: "6px 0" },
+  lockedNote: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#7A7467", padding: "6px 0" },
 
-  usuarioRow: { display: "flex", flexDirection: "column", gap: 6, padding: "10px 0", borderBottom: "1px solid #2E2840" },
+  usuarioRow: { display: "flex", flexDirection: "column", gap: 6, padding: "10px 0", borderBottom: "1px solid #322F29" },
   usuarioRowLeft: { display: "flex", alignItems: "center", gap: 6 },
   usuarioRowActions: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  inlineLink: { background: "transparent", border: "none", color: "#D9AE5C", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
-  inlineAddLink: { background: "transparent", border: "none", color: "#D9AE5C", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: "6px 0", textAlign: "left", display: "flex", alignItems: "center", gap: 5 },
+  inlineLink: { background: "transparent", border: "none", color: "#D2A64E", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
+  inlineAddLink: { background: "transparent", border: "none", color: "#D2A64E", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: "6px 0", textAlign: "left", display: "flex", alignItems: "center", gap: 5 },
   resetPinRow: { display: "flex", gap: 8, marginTop: 4 },
   rolPillsRow: { display: "flex", gap: 6 },
   rolPillsRowSmall: { display: "flex", gap: 4 },
-  rolPill: { flex: 1, padding: "9px 0", textAlign: "center", borderRadius: 8, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
-  rolPillSmall: { padding: "4px 8px", borderRadius: 7, border: "1px solid #3A3350", background: "#1F1B2B", color: "#9A93B0", fontSize: 10.5, fontWeight: 600, cursor: "pointer" },
-  rolPillActive: { background: "#DAD3EC", color: "#16131D", border: "1px solid #DAD3EC" },
-  auditText: { fontSize: 11.5, color: "#B9B2CC" },
+  rolPill: { flex: 1, padding: "9px 0", textAlign: "center", borderRadius: 8, border: "1px solid #3D3A33", background: "#211F1C", color: "#ADA798", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+  rolPillSmall: { padding: "4px 8px", borderRadius: 7, border: "1px solid #3D3A33", background: "#211F1C", color: "#918B7D", fontSize: 10.5, fontWeight: 600, cursor: "pointer" },
+  rolPillActive: { background: "#CFC9BB", color: "#171614", border: "1px solid #CFC9BB" },
+  auditText: { fontSize: 11.5, color: "#ADA798" },
 
   pinVisorRow: { display: "flex", padding: "2px 0" },
-  pinVisorBtn: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#9A93B0", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
-  pinVisorValue: { fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1.5, color: "#DAD3EC", fontWeight: 700 },
+  pinVisorBtn: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#918B7D", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 0 },
+  pinVisorValue: { fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1.5, color: "#CFC9BB", fontWeight: 700 },
 
   metodoPillsRow: { display: "flex", gap: 8, flexWrap: "wrap" },
-  metodoPill: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 9, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+  metodoPill: { display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 9, border: "1px solid #3D3A33", background: "#211F1C", color: "#ADA798", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
 
-  mesaCuentaCard: { background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 12, marginBottom: 10, overflow: "hidden" },
+  mesaCuentaCard: { background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 12, marginBottom: 10, overflow: "hidden" },
   mesaCuentaHead: { width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "13px 14px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
   mesaCuentaLeft: { display: "flex", flexDirection: "column", gap: 3 },
-  mesaCuentaNum: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#DAD3EC" },
-  mesaCuentaSince: { fontSize: 11, color: "#7F7899" },
-  enCursoTag: { fontSize: 10.5, fontWeight: 700, color: "#E0B866", background: "#3B3020", padding: "2px 7px", borderRadius: 8, alignSelf: "flex-start", marginTop: 2 },
+  mesaCuentaNum: { fontFamily: "'Oswald', sans-serif", fontSize: 16, fontWeight: 700, color: "#CFC9BB" },
+  mesaCuentaSince: { fontSize: 11, color: "#7A7467" },
+  enCursoTag: { fontSize: 10.5, fontWeight: 700, color: "#D6AE5E", background: "#3A2F1C", padding: "2px 7px", borderRadius: 8, alignSelf: "flex-start", marginTop: 2 },
   mesaCuentaRight: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 },
-  mesaCuentaItems: { fontSize: 11, color: "#7F7899" },
-  mesaCuentaTotal: { fontFamily: "'Oswald', sans-serif", fontSize: 17, fontWeight: 700, color: "#DAD3EC" },
-  mesaCuentaBody: { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #2E2840" },
-  mesaCuentaOrderRow: { display: "flex", gap: 8, fontSize: 11.5, color: "#B9B2CC", padding: "6px 0", borderBottom: "1px solid #262133" },
-  mesaCuentaOrderTime: { color: "#7F7899", flexShrink: 0 },
+  mesaCuentaItems: { fontSize: 11, color: "#7A7467" },
+  mesaCuentaTotal: { fontFamily: "'Oswald', sans-serif", fontSize: 17, fontWeight: 700, color: "#CFC9BB" },
+  mesaCuentaBody: { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #322F29" },
+  mesaCuentaOrderRow: { display: "flex", gap: 8, fontSize: 11.5, color: "#ADA798", padding: "6px 0", borderBottom: "1px solid #292622" },
+  mesaCuentaOrderTime: { color: "#7A7467", flexShrink: 0 },
   mesaCuentaOrderItems: { flex: 1 },
-  mesaCuentaOrderTotal: { fontWeight: 700, color: "#DAD3EC", flexShrink: 0 },
+  mesaCuentaOrderTotal: { fontWeight: 700, color: "#CFC9BB", flexShrink: 0 },
 
-  subtotalRow: { display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12.5, color: "#B9B2CC", padding: "4px 0" },
-  subtotalRowFinal: { fontSize: 15, fontWeight: 700, color: "#DAD3EC", borderTop: "1px solid #2E2840", marginTop: 4, paddingTop: 8 },
+  subtotalRow: { display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12.5, color: "#ADA798", padding: "4px 0" },
+  subtotalRowFinal: { fontSize: 15, fontWeight: 700, color: "#CFC9BB", borderTop: "1px solid #322F29", marginTop: 4, paddingTop: 8 },
   descuentoBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0" },
   propinaBox: { display: "flex", flexDirection: "column", gap: 6, padding: "6px 0" },
   propinaPillsRow: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" },
-  propinaPill: { padding: "7px 12px", borderRadius: 8, border: "1px solid #3A3350", background: "#1F1B2B", color: "#B9B2CC", fontSize: 12, fontWeight: 600, cursor: "pointer" },
-  propinaCustomInput: { width: 70, padding: "7px 8px", borderRadius: 8, border: "1px solid #3A3350", fontSize: 12 },
-  propinaCustomBtn: { padding: "7px 10px", borderRadius: 8, border: "none", background: "#DAD3EC", color: "#16131D", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  propinaPill: { padding: "7px 12px", borderRadius: 8, border: "1px solid #3D3A33", background: "#211F1C", color: "#ADA798", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  propinaCustomInput: { width: 70, padding: "7px 8px", borderRadius: 8, border: "1px solid #3D3A33", fontSize: 12 },
+  propinaCustomBtn: { padding: "7px 10px", borderRadius: 8, border: "none", background: "#CFC9BB", color: "#171614", fontSize: 12, fontWeight: 600, cursor: "pointer" },
 
-  pagosRegistradosBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0", borderTop: "1px solid #2E2840", marginTop: 4 },
-  pagosRegistradosLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1, color: "#7F7899", fontWeight: 700 },
+  pagosRegistradosBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0", borderTop: "1px solid #322F29", marginTop: 4 },
+  pagosRegistradosLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1, color: "#7A7467", fontWeight: 700 },
   pagoRow: { display: "flex", alignItems: "center", gap: 8 },
   pagoRowMid: { display: "flex", flexDirection: "column", flex: 1, minWidth: 0 },
-  pagoRowEtiqueta: { fontSize: 12.5, fontWeight: 600, color: "#DAD3EC" },
-  pagoRowItems: { fontSize: 10.5, color: "#9A93B0" },
-  pagoRowTime: { fontSize: 10.5, color: "#7F7899" },
-  pagoRowMonto: { fontSize: 12.5, fontWeight: 700, color: "#DAD3EC", flexShrink: 0 },
+  pagoRowEtiqueta: { fontSize: 12.5, fontWeight: 600, color: "#CFC9BB" },
+  pagoRowItems: { fontSize: 10.5, color: "#918B7D" },
+  pagoRowTime: { fontSize: 10.5, color: "#7A7467" },
+  pagoRowMonto: { fontSize: 12.5, fontWeight: 700, color: "#CFC9BB", flexShrink: 0 },
 
-  cobroBox: { display: "flex", flexDirection: "column", gap: 10, padding: "10px 0 0", borderTop: "1px solid #2E2840", marginTop: 6 },
+  cobroBox: { display: "flex", flexDirection: "column", gap: 10, padding: "10px 0 0", borderTop: "1px solid #322F29", marginTop: 6 },
   cerrarVaciaBox: { display: "flex", flexDirection: "column", gap: 6, padding: "8px 0" },
-  cancelarCuentaBox: { padding: "10px 0 0", borderTop: "1px solid #2E2840", marginTop: 6 },
-  canceladasBox: { background: "#3F2430", border: "1px solid #6B3F4A", borderRadius: 10, padding: 10, marginBottom: 14 },
-  cargandoHistBox: { display: "flex", alignItems: "center", gap: 6, background: "#262133", borderRadius: 8, padding: "8px 10px", marginBottom: 10, fontSize: 11.5, color: "#9A93B0" },
-  canceladasToggle: { width: "100%", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "#F0A3A8", fontSize: 12, fontWeight: 700, cursor: "pointer", textAlign: "left" },
-  canceladaRow: { padding: "7px 0", borderTop: "1px solid #6B3F4A" },
-  canceladaMotivo: { fontSize: 11.5, color: "#F0A3A8", marginTop: 2 },
+  cancelarCuentaBox: { padding: "10px 0 0", borderTop: "1px solid #322F29", marginTop: 6 },
+  canceladasBox: { background: "#3C2623", border: "1px solid #5E3F3A", borderRadius: 10, padding: 10, marginBottom: 14 },
+  cargandoHistBox: { display: "flex", alignItems: "center", gap: 6, background: "#292622", borderRadius: 8, padding: "8px 10px", marginBottom: 10, fontSize: 11.5, color: "#918B7D" },
+  canceladasToggle: { width: "100%", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "#E3A097", fontSize: 12, fontWeight: 700, cursor: "pointer", textAlign: "left" },
+  canceladaRow: { padding: "7px 0", borderTop: "1px solid #5E3F3A" },
+  canceladaMotivo: { fontSize: 11.5, color: "#E3A097", marginTop: 2 },
   modoChoiceRow: { display: "flex", flexDirection: "column", gap: 8 },
   partesStepperRow: { display: "flex", alignItems: "center", gap: 8 },
-  productoSplitRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: "1px solid #262133" },
+  productoSplitRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: "1px solid #292622" },
 
   rowBetween: { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  exportLink: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#D9AE5C", fontSize: 12, fontWeight: 600, cursor: "pointer" },
-  histRow: { width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "13px 0", borderBottom: "1px solid #2E2840", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
-  histRowTitle: { fontSize: 14, fontWeight: 700, color: "#DAD3EC", flex: 1 },
-  histRowSub: { fontSize: 11.5, color: "#7F7899" },
-  histRowTotal: { fontSize: 14, fontWeight: 700, color: "#DAD3EC" },
+  exportLink: { display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: "#D2A64E", fontSize: 12, fontWeight: 600, cursor: "pointer" },
+  histRow: { width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "13px 0", borderBottom: "1px solid #322F29", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" },
+  histRowTitle: { fontSize: 14, fontWeight: 700, color: "#CFC9BB", flex: 1 },
+  histRowSub: { fontSize: 11.5, color: "#7A7467" },
+  histRowTotal: { fontSize: 14, fontWeight: 700, color: "#CFC9BB" },
 
   metodoBreakdownRowLight: { display: "flex", gap: 16, flexWrap: "wrap" },
   metodoBreakdownItemLight: { display: "flex", alignItems: "center", gap: 5 },
-  metodoBreakdownLabelLight: { fontSize: 11.5, color: "#9A93B0" },
-  metodoBreakdownValueLight: { fontSize: 12.5, color: "#DAD3EC", fontWeight: 700 },
+  metodoBreakdownLabelLight: { fontSize: 11.5, color: "#918B7D" },
+  metodoBreakdownValueLight: { fontSize: 12.5, color: "#CFC9BB", fontWeight: 700 },
 
-  cierreRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #2E2840" },
-  cierrePedidos: { fontSize: 11, color: "#7F7899", flexShrink: 0 },
-  cierreTotal: { fontSize: 12.5, fontWeight: 700, color: "#DAD3EC", flexShrink: 0 },
-  dividedTag: { color: "#D9AE5C", fontWeight: 600 },
+  cierreRow: { display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #322F29" },
+  cierrePedidos: { fontSize: 11, color: "#7A7467", flexShrink: 0 },
+  cierreTotal: { fontSize: 12.5, fontWeight: 700, color: "#CFC9BB", flexShrink: 0 },
+  dividedTag: { color: "#D2A64E", fontWeight: 600 },
 
-  cajaProductRow: { display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid #262133" },
-  cajaProductQty: { color: "#D9737C", fontWeight: 700, fontSize: 12.5, minWidth: 28 },
-  cajaProductName: { flex: 1, fontSize: 12.5, color: "#DAD3EC" },
-  cajaProductSubtotal: { fontSize: 12.5, fontWeight: 700, color: "#DAD3EC" },
-  chartBox: { background: "#1F1B2B", border: "1px solid #3A3350", borderRadius: 12, padding: "10px 6px", marginBottom: 4 },
+  cajaProductRow: { display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid #292622" },
+  cajaProductQty: { color: "#CF7B6F", fontWeight: 700, fontSize: 12.5, minWidth: 28 },
+  cajaProductName: { flex: 1, fontSize: 12.5, color: "#CFC9BB" },
+  cajaProductSubtotal: { fontSize: 12.5, fontWeight: 700, color: "#CFC9BB" },
+  chartBox: { background: "#211F1C", border: "1px solid #3D3A33", borderRadius: 12, padding: "10px 6px", marginBottom: 4 },
 
-  meseroStatRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 0", borderBottom: "1px solid #2E2840" },
+  meseroStatRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 0", borderBottom: "1px solid #322F29" },
   meseroStatLeft: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  meseroStatSub: { fontSize: 11, color: "#7F7899" },
+  meseroStatSub: { fontSize: 11, color: "#7A7467" },
 };
