@@ -2008,4 +2008,738 @@ function PanelSenalesAlerta({ cuentas, turnos }) {
 function GestionUsuarios({ config, persistConfig, usuarioActual }) {
   const usuarios = config.usuarios || [];
   const auditLog = config.auditLog || [];
-  const [nombre, setNombre] 
+  const [nombre, setNombre] = useState("");
+  const [pin, setPin] = useState("");
+  const [roles, setRoles] = useState(["mesero"]);
+  const [error, setError] = useState("");
+  const [verPin, setVerPin] = useState({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [verLog, setVerLog] = useState(false);
+
+  const registrar = (accion) => ({ ts: Date.now(), accion, actor: usuarioActual.nombre });
+
+  const toggleRol = (r) => setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
+
+  const agregar = async () => {
+    if (!nombre.trim()) { setError("Escribe el nombre."); return; }
+    if (pin.length < 4) { setError("El PIN debe tener al menos 4 dígitos."); return; }
+    if (roles.length === 0) { setError("Elige al menos un rol."); return; }
+    if (usuarios.some((u) => u.nombre.toLowerCase() === nombre.trim().toLowerCase())) { setError("Ya existe un usuario con ese nombre."); return; }
+    const nuevo = { id: uid(), nombre: nombre.trim(), pin, roles };
+    await persistConfig({
+      ...config,
+      usuarios: [...usuarios, nuevo],
+      auditLog: [registrar(`Creó el usuario "${nuevo.nombre}" (${rolesLabel(nuevo)})`), ...auditLog].slice(0, 50),
+    });
+    setNombre(""); setPin(""); setRoles(["mesero"]); setError("");
+  };
+
+  const eliminar = async (u) => {
+    const admins = usuarios.filter((x) => tieneRol(x, "admin"));
+    if (tieneRol(u, "admin") && admins.length <= 1) { setError("No puedes eliminar al único administrador."); setConfirmDeleteId(null); return; }
+    if (u.nombre === usuarioActual.nombre) { setError("No puedes eliminar tu propio usuario mientras estás dentro."); setConfirmDeleteId(null); return; }
+    await persistConfig({
+      ...config,
+      usuarios: usuarios.filter((x) => x.id !== u.id),
+      auditLog: [registrar(`Eliminó el usuario "${u.nombre}"`), ...auditLog].slice(0, 50),
+    });
+    setConfirmDeleteId(null); setError("");
+  };
+
+  const cambiarRol = async (u, rol) => {
+    const actuales = rolesDe(u);
+    const nuevos = actuales.includes(rol) ? actuales.filter((r) => r !== rol) : [...actuales, rol];
+    if (nuevos.length === 0) { setError("Cada usuario necesita al menos un rol."); return; }
+    if (actuales.includes("admin") && !nuevos.includes("admin") && usuarios.filter((x) => tieneRol(x, "admin")).length <= 1) {
+      setError("Tiene que quedar al menos un administrador."); return;
+    }
+    const lista = usuarios.map((x) => (x.id === u.id ? { ...x, roles: nuevos, rol: undefined } : x));
+    await persistConfig({ ...config, usuarios: lista, auditLog: [registrar(`Cambió los roles de "${u.nombre}" a ${nuevos.map(rolLabel).join(" + ")}`), ...auditLog].slice(0, 50) });
+    setError("");
+  };
+
+  return (
+    <div>
+      <div style={styles.addItemCard}>
+        <input style={styles.editInput} placeholder="Nombre del nuevo usuario" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+        <input style={styles.editInput} type="password" inputMode="numeric" placeholder="PIN (mínimo 4 dígitos)" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {Object.keys(ROL_LABELS).map((r) => (
+            <button key={r} style={{ ...styles.catPill, ...(roles.includes(r) ? styles.catPillActive : {}) }} onClick={() => toggleRol(r)}>{rolLabel(r)}</button>
+          ))}
+        </div>
+        {error && <div style={styles.pinError}>{error}</div>}
+        <button style={styles.addItemBtn} onClick={agregar}><Plus size={15} /> Crear usuario</button>
+      </div>
+
+      {usuarios.map((u) => (
+        <div key={u.id} style={styles.turnoRowCol}>
+          <div style={{ ...styles.turnoRow, border: "none", padding: 0 }}>
+            <span style={styles.pagoRowEtiqueta}><UserCircle2 size={14} style={{ verticalAlign: -2 }} /> {u.nombre}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button style={styles.iconBtn} onClick={() => setVerPin((v) => ({ ...v, [u.id]: !v[u.id] }))} title="Ver PIN">
+                {verPin[u.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+              <span style={styles.cierreDate}>{verPin[u.id] ? u.pin : "••••"}</span>
+              {confirmDeleteId === u.id ? (
+                <>
+                  <button style={styles.confirmYes} onClick={() => eliminar(u)}>Sí</button>
+                  <button style={styles.confirmNo} onClick={() => setConfirmDeleteId(null)}>No</button>
+                </>
+              ) : (
+                <button style={styles.deleteBtn} onClick={() => setConfirmDeleteId(u.id)}><Trash2 size={14} /></button>
+              )}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+            {Object.keys(ROL_LABELS).map((r) => (
+              <button key={r} style={{ ...styles.catPill, padding: "4px 10px", fontSize: 11, ...(tieneRol(u, r) ? styles.catPillActive : {}) }} onClick={() => cambiarRol(u, r)}>{rolLabel(r)}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <button style={{ ...styles.canceladasToggle, marginTop: 14 }} onClick={() => setVerLog((v) => !v)}>
+        <Lock size={13} /> <span>Registro de seguridad</span> <span>{verLog ? "▲" : "▼"}</span>
+      </button>
+      {verLog && (
+        <div style={{ marginTop: 8 }}>
+          {auditLog.length === 0 && <div style={styles.cajaEmptyText}>Sin movimientos todavía.</div>}
+          {auditLog.map((a, i) => (
+            <div key={i} style={styles.turnoRowCol}>
+              <div style={styles.turnoSubRow}>{dateTimeLabel(a.ts)} · {a.actor}</div>
+              <div style={{ fontSize: 13 }}>{a.accion}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Campo de monto con separador de miles ---------------- */
+
+function CampoMonto({ value, onChange, placeholder, style, autoFocus }) {
+  const mostrado = value ? Number(value).toLocaleString("es-CO") : "";
+  return (
+    <input
+      style={style || styles.editInput}
+      inputMode="numeric"
+      placeholder={placeholder}
+      autoFocus={autoFocus}
+      value={mostrado}
+      onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+    />
+  );
+}
+
+function AvisoActivarNotificaciones() {
+  const soportado = typeof window !== "undefined" && "Notification" in window;
+  const [permiso, setPermiso] = useState(soportado ? Notification.permission : "denied");
+  if (!soportado || permiso !== "default") return null;
+  const activar = async () => {
+    try { setPermiso(await Notification.requestPermission()); } catch (e) { setPermiso("denied"); }
+  };
+  return (
+    <button style={styles.avisoNotifBtn} onClick={activar}>
+      <Volume2 size={14} /> Toca aquí para activar los avisos del navegador
+    </button>
+  );
+}
+
+/* ---------------- Tarjeta de cuenta (cobro) ---------------- */
+
+function MesaCuentaCard({ cuenta, orders, saveCuenta, saveOrdersMap, turnoAbierto, usuarioActual, mesas, expanded, onToggle }) {
+  const esAdmin = tieneRol(usuarioActual, "admin");
+  const [metodo, setMetodo] = useState("efectivo");
+  const [modo, setModo] = useState("completa");
+  const [seleccion, setSeleccion] = useState({});
+  const [descInput, setDescInput] = useState("");
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [procesando, setProcesando] = useState(false);
+
+  const subtotal = cuentaSubtotal(orders, cuenta.id);
+  const pct = (cuenta.propina && cuenta.propina.pct) || 0;
+  const propinaMonto = Math.round((subtotal * pct) / 100);
+  const descuento = (cuenta.descuento && cuenta.descuento.monto) || 0;
+  const granTotal = Math.max(0, subtotal - descuento + propinaMonto);
+  const pagado = pagosTotal(cuenta);
+  const restante = Math.max(0, granTotal - pagado);
+  const items = itemsAgregados(orders, cuenta.id);
+  const asignada = qtyAsignadaPorProducto(cuenta);
+  const hayPagos = pagosDe(cuenta).length > 0;
+  const sinServir = cuentaOrders(orders, cuenta.id).filter((o) => o.estado !== "cancelado" && o.estado !== "servido").length;
+  const visual = estadoVisualMesa(cuenta, cuentaOrders(orders, cuenta.id));
+
+  const setPropina = async (p) => {
+    await saveCuenta({ ...cuenta, propina: { pct: p, monto: Math.round((subtotal * p) / 100) } });
+  };
+  const aplicarDescuento = async () => {
+    const monto = Math.min(parseFloat(descInput) || 0, subtotal);
+    await saveCuenta({ ...cuenta, descuento: monto > 0 ? { monto, aplicadoPor: usuarioActual.nombre } : null });
+    setDescInput("");
+  };
+
+  const registrarPago = async (monto, extra) => {
+    if (procesando) return;
+    setProcesando(true);
+    try {
+      const pago = { id: uid(), ts: Date.now(), monto, metodoPago: metodo, procesadoPor: usuarioActual.nombre, ...extra };
+      const cerrada = pagado + monto >= granTotal;
+      await saveCuenta({
+        ...cuenta,
+        propina: { pct, monto: propinaMonto },
+        pagos: [...pagosDe(cuenta), pago],
+        ...(cerrada ? { estado: "pagada", pagadaTs: Date.now() } : {}),
+      });
+      setSeleccion({});
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const cobrarCompleta = () => registrarPago(restante, { tipo: "completa", etiqueta: hayPagos ? "Saldo restante" : "Cuenta completa" });
+
+  const montoSeleccion = items.reduce((s, it) => s + (seleccion[it.key] || 0) * it.price, 0);
+  const cobrarProductos = () => {
+    const elegidos = items.filter((it) => (seleccion[it.key] || 0) > 0).map((it) => ({ key: it.key, name: it.name, price: it.price, qty: seleccion[it.key] }));
+    if (elegidos.length === 0) return;
+    const todoAsignado = items.every((it) => (asignada[it.key] || 0) + (seleccion[it.key] || 0) >= it.qty);
+    const monto = todoAsignado ? restante : Math.min(montoSeleccion, restante);
+    registrarPago(monto, { tipo: "por_producto", etiqueta: "Por producto", items: elegidos });
+  };
+  const cambiarSel = (it, d) => {
+    const libre = it.qty - (asignada[it.key] || 0);
+    setSeleccion((prev) => ({ ...prev, [it.key]: Math.max(0, Math.min(libre, (prev[it.key] || 0) + d)) }));
+  };
+
+  const cancelarCuenta = async () => {
+    const patch = {};
+    cuentaOrders(orders, cuenta.id).forEach((o) => { patch[o.id] = { ...o, estado: "cancelado" }; });
+    if (Object.keys(patch).length > 0) await saveOrdersMap(patch);
+    await saveCuenta({ ...cuenta, estado: "cancelada", canceladaTs: Date.now(), canceladaPor: usuarioActual.nombre, montoCancelado: subtotal });
+    setConfirmCancel(false);
+  };
+
+  const puedeCobrar = turnoAbierto && restante > 0 && !procesando;
+
+  return (
+    <div style={styles.cuentaCard}>
+      <button style={styles.cuentaHead} onClick={onToggle}>
+        <div style={{ textAlign: "left" }}>
+          <div style={styles.cuentaMesa}>{mesaNombre(mesas, cuenta.mesa)}</div>
+          <div style={styles.cuentaSub}>{cuenta.mesero || "—"} · desde {timeLabel(cuenta.ts)} · {cuentaItemCount(orders, cuenta.id)} ítems</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={styles.cuentaTotal}>{money(granTotal)}</div>
+          <span style={{ ...styles.mesaCardTag, background: visual.bg, color: visual.color }}>{visual.tag}</span>
+        </div>
+      </button>
+
+      {expanded && (
+        <div style={styles.cuentaBody}>
+          {items.length === 0 && <div style={styles.cajaEmptyText}>Esta cuenta no tiene productos.</div>}
+          {items.map((it) => (
+            <div key={it.key} style={styles.cuentaLinea}>
+              <span>{it.qty}× {it.name}</span>
+              <span>{money(it.qty * it.price)}</span>
+            </div>
+          ))}
+          {sinServir > 0 && <div style={styles.warnBanner}><AlertTriangle size={14} /> {sinServir} {sinServir === 1 ? "pedido" : "pedidos"} aún sin servir.</div>}
+
+          <div style={styles.cuentaLinea}><span>Subtotal</span><span>{money(subtotal)}</span></div>
+          {descuento > 0 && <div style={styles.cuentaLinea}><span>Descuento ({cuenta.descuento.aplicadoPor})</span><span>-{money(descuento)}</span></div>}
+
+          <div style={styles.catLabel}>PROPINA</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {PROPINA_OPCIONES.map((p) => (
+              <button key={p} disabled={hayPagos} style={{ ...styles.catPill, ...(pct === p ? styles.catPillActive : {}), opacity: hayPagos ? 0.5 : 1 }} onClick={() => setPropina(p)}>
+                {p === 0 ? "Sin propina" : `${p}%`}
+              </button>
+            ))}
+          </div>
+          {propinaMonto > 0 && <div style={styles.cuentaLinea}><span>Propina</span><span>{money(propinaMonto)}</span></div>}
+
+          {esAdmin && !hayPagos && (
+            <>
+              <div style={styles.catLabel}>DESCUENTO (SOLO ADMIN)</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <CampoMonto style={{ ...styles.editInput, flex: 1 }} placeholder="Monto a descontar" value={descInput} onChange={setDescInput} />
+                <button style={styles.confirmYes} onClick={aplicarDescuento}><Gift size={13} /> Aplicar</button>
+              </div>
+            </>
+          )}
+
+          <div style={{ ...styles.cuentaLinea, fontWeight: 700, fontSize: 16 }}><span>Total a cobrar</span><span>{money(granTotal)}</span></div>
+
+          {hayPagos && (
+            <>
+              <div style={styles.catLabel}>PAGOS REGISTRADOS</div>
+              {pagosDe(cuenta).map((p) => (
+                <div key={p.id} style={styles.cuentaLinea}>
+                  <span style={styles.pagoRowEtiqueta}>{p.etiqueta} · {METODO_META[p.metodoPago]?.label} · {timeLabel(p.ts)}</span>
+                  <span>{money(p.monto)}</span>
+                </div>
+              ))}
+              <div style={styles.cuentaLinea}><span>Falta por cobrar</span><b>{money(restante)}</b></div>
+            </>
+          )}
+
+          {!turnoAbierto && <div style={styles.warnBanner}><AlertTriangle size={14} /> Abre el turno para poder cobrar.</div>}
+
+          {restante > 0 && (
+            <>
+              <div style={styles.catLabel}>MÉTODO DE PAGO</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {Object.entries(METODO_META).map(([key, meta]) => {
+                  const Icon = meta.icon;
+                  return (
+                    <button key={key} style={{ ...styles.catPill, flex: 1, justifyContent: "center", ...(metodo === key ? styles.catPillActive : {}) }} onClick={() => setMetodo(key)}>
+                      <Icon size={13} /> {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                <button style={{ ...styles.vistaMesasBtn, ...(modo === "completa" ? styles.vistaMesasBtnActive : {}) }} onClick={() => setModo("completa")}>Cobrar todo</button>
+                <button style={{ ...styles.vistaMesasBtn, ...(modo === "productos" ? styles.vistaMesasBtnActive : {}) }} onClick={() => setModo("productos")}>Dividir por producto</button>
+              </div>
+
+              {modo === "completa" ? (
+                <button style={{ ...styles.sendBtn, opacity: puedeCobrar ? 1 : 0.4 }} disabled={!puedeCobrar} onClick={cobrarCompleta}>
+                  <Check size={16} /> Cobrar {money(restante)}
+                </button>
+              ) : (
+                <>
+                  {items.map((it) => {
+                    const libre = it.qty - (asignada[it.key] || 0);
+                    if (libre <= 0) return null;
+                    return (
+                      <div key={it.key} style={styles.menuRow}>
+                        <div>
+                          <div style={styles.menuItemName}>{it.name}</div>
+                          <div style={styles.menuItemPrice}>{money(it.price)} · quedan {libre}</div>
+                        </div>
+                        <div style={styles.stepper}>
+                          <button style={styles.stepBtn} onClick={() => cambiarSel(it, -1)}><Minus size={14} /></button>
+                          <span style={styles.stepVal}>{seleccion[it.key] || 0}</span>
+                          <button style={{ ...styles.stepBtn, ...styles.stepBtnPlus }} onClick={() => cambiarSel(it, 1)}><Plus size={14} /></button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <button style={{ ...styles.sendBtn, opacity: puedeCobrar && montoSeleccion > 0 ? 1 : 0.4 }} disabled={!puedeCobrar || montoSeleccion === 0} onClick={cobrarProductos}>
+                    <Check size={16} /> Cobrar selección ({money(montoSeleccion)})
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <button style={styles.cancelEditBtn} onClick={() => window.print()}>Imprimir cuenta</button>
+            {!hayPagos && (
+              confirmCancel ? (
+                <>
+                  <button style={styles.confirmYes} onClick={cancelarCuenta}>Sí, cancelar cuenta</button>
+                  <button style={styles.confirmNo} onClick={() => setConfirmCancel(false)}>No</button>
+                </>
+              ) : (
+                <button style={{ ...styles.cancelEditBtn, color: "#C1442D" }} onClick={() => setConfirmCancel(true)}><Ban size={13} /> Cancelar cuenta</button>
+              )
+            )}
+          </div>
+
+          <div className="solo-imprimir" style={{ fontFamily: "monospace", fontSize: 12 }}>
+            <div style={{ textAlign: "center", fontWeight: 700 }}>{mesaNombre(mesas, cuenta.mesa)}</div>
+            {items.map((it) => <div key={it.key}>{it.qty}× {it.name} — {money(it.qty * it.price)}</div>)}
+            <div>Subtotal: {money(subtotal)}</div>
+            {descuento > 0 && <div>Descuento: -{money(descuento)}</div>}
+            {propinaMonto > 0 && <div>Propina: {money(propinaMonto)}</div>}
+            <div style={{ fontWeight: 700 }}>TOTAL: {money(granTotal)}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Historial (admin) ---------------- */
+
+function HistorialView({ cuentasParaHistorial, ordersParaHistorial, historialCompleto, cargandoHistorial, cargarHistorialCompleto, config, mesas, usuarioActual }) {
+  const [abiertos, setAbiertos] = useState({});
+  const toggle = (k) => setAbiertos((prev) => ({ ...prev, [k]: !prev[k] }));
+
+  useEffect(() => { cargarHistorialCompleto(); }, []);
+
+  const { days, months, years } = buildHistory(cuentasParaHistorial, ordersParaHistorial);
+  const yearList = Object.values(years).sort((a, b) => b.key.localeCompare(a.key));
+
+  return (
+    <div style={styles.menuScroll}>
+      {cargandoHistorial && <div style={styles.cajaEmptyText}>Cargando historial completo…</div>}
+      {!historialCompleto && !cargandoHistorial && <div style={styles.cajaEmptyText}>Mostrando solo los últimos {VENTANA_DIAS} días.</div>}
+      {yearList.length === 0 && <div style={styles.cajaEmptyText}>Todavía no hay cuentas pagadas.</div>}
+
+      {yearList.length > 0 && (
+        <button style={styles.modoChoiceBtn} onClick={() => exportarExcel(cuentasParaHistorial, ordersParaHistorial, config, mesas)}>
+          <Download size={15} /> Exportar a Excel
+        </button>
+      )}
+
+      {yearList.map((y) => (
+        <div key={y.key} style={{ marginTop: 12 }}>
+          <button style={styles.histHead} onClick={() => toggle(y.key)}>
+            <b>{y.key}</b><span>{money(y.total)} {abiertos[y.key] ? "▲" : "▼"}</span>
+          </button>
+          {abiertos[y.key] && y.monthKeys.slice().sort().reverse().map((mk) => {
+            const m = months[mk];
+            return (
+              <div key={mk} style={{ marginLeft: 10 }}>
+                <button style={styles.histHead} onClick={() => toggle(mk)}>
+                  <span>{monthLabel(m.ts)}</span><span>{money(m.total)} {abiertos[mk] ? "▲" : "▼"}</span>
+                </button>
+                {abiertos[mk] && m.dayKeys.slice().sort().reverse().map((dk) => {
+                  const d = days[dk];
+                  return (
+                    <div key={dk} style={{ marginLeft: 10 }}>
+                      <button style={styles.histHead} onClick={() => toggle(dk)}>
+                        <span>{dayLabel(d.ts)}</span><span>{money(d.total)} {abiertos[dk] ? "▲" : "▼"}</span>
+                      </button>
+                      {abiertos[dk] && (
+                        <div style={styles.histDetalle}>
+                          <div style={styles.turnoSubRow}>
+                            {d.cuentasCount} {d.cuentasCount === 1 ? "cuenta" : "cuentas"} ·{" "}
+                            {Object.entries(METODO_META).map(([k, meta]) => `${meta.label} ${money(d.porMetodo[k] || 0)}`).join(" · ")}
+                          </div>
+                          {d.cuentas.sort((a, b) => a.pagadaTs - b.pagadaTs).map((c) => (
+                            <div key={c.id} style={styles.cuentaLinea}>
+                              <span>{timeLabel(c.pagadaTs)} · {mesaNombre(mesas, c.mesa)} · {c.mesero || "—"}</span>
+                              <span>{money(c.total)}</span>
+                            </div>
+                          ))}
+                          <div style={styles.catLabel}>PRODUCTOS DEL DÍA</div>
+                          {Object.entries(d.productos).sort((a, b) => b[1].subtotal - a[1].subtotal).map(([name, p]) => (
+                            <div key={name} style={styles.cuentaLinea}><span>{p.qty}× {name}</span><span>{money(p.subtotal)}</span></div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- Reportes ---------------- */
+
+function ReportesView({ cuentas, orders, menu, usuarioActual }) {
+  const [rango, setRango] = useState(1);
+  const esAdmin = tieneRol(usuarioActual, "admin");
+
+  const inicio = new Date();
+  inicio.setHours(0, 0, 0, 0);
+  inicio.setDate(inicio.getDate() - (rango - 1));
+  const pagadas = cuentas.filter((c) => c.estado === "pagada" && c.pagadaTs >= inicio.getTime());
+
+  const total = pagadas.reduce((s, c) => s + cuentaGranTotal(orders, c), 0);
+  const ticketPromedio = pagadas.length > 0 ? total / pagadas.length : 0;
+  const propinas = pagadas.reduce((s, c) => s + ((c.propina && c.propina.monto) || 0), 0);
+  const descuentos = pagadas.reduce((s, c) => s + ((c.descuento && c.descuento.monto) || 0), 0);
+
+  const productos = {};
+  let costoTotal = 0;
+  let ventaProductos = 0;
+  pagadas.forEach((c) => {
+    cuentaOrders(orders, c.id).filter((o) => o.estado !== "cancelado").forEach((o) =>
+      o.items.forEach((it) => {
+        if (!productos[it.name]) productos[it.name] = { qty: 0, subtotal: 0 };
+        productos[it.name].qty += it.qty;
+        productos[it.name].subtotal += it.qty * it.price;
+        costoTotal += (it.cost || 0) * it.qty;
+        ventaProductos += it.price * it.qty;
+      })
+    );
+  });
+  const top = Object.entries(productos).sort((a, b) => b[1].qty - a[1].qty).slice(0, 10);
+
+  const grupos = {};
+  pagadas.forEach((c) => {
+    const k = rango === 1 ? hourLabel(new Date(c.pagadaTs).getHours()) : dayKey(c.pagadaTs).slice(5);
+    grupos[k] = (grupos[k] || 0) + cuentaGranTotal(orders, c);
+  });
+  const dataGrafica = Object.entries(grupos).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => ({ k, ventas: v }));
+
+  return (
+    <div style={styles.menuScroll}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        {[[1, "Hoy"], [7, "7 días"], [30, "30 días"]].map(([n, label]) => (
+          <button key={n} style={{ ...styles.vistaMesasBtn, ...(rango === n ? styles.vistaMesasBtnActive : {}) }} onClick={() => setRango(n)}>{label}</button>
+        ))}
+      </div>
+
+      <div style={styles.cajaTotalCard}>
+        <span style={styles.cajaTotalLabel}>Ventas ({pagadas.length} {pagadas.length === 1 ? "cuenta" : "cuentas"})</span>
+        <span style={styles.cajaTotalValue}>{money(total)}</span>
+        <div style={styles.metodoBreakdownRow}>
+          <div style={styles.metodoBreakdownItem}><span style={styles.metodoBreakdownLabel}>Ticket promedio</span><span style={styles.metodoBreakdownValue}>{money(ticketPromedio)}</span></div>
+          <div style={styles.metodoBreakdownItem}><span style={styles.metodoBreakdownLabel}>Propinas</span><span style={styles.metodoBreakdownValue}>{money(propinas)}</span></div>
+          <div style={styles.metodoBreakdownItem}><span style={styles.metodoBreakdownLabel}>Descuentos</span><span style={styles.metodoBreakdownValue}>{money(descuentos)}</span></div>
+        </div>
+      </div>
+
+      {esAdmin && costoTotal > 0 && (
+        <div style={styles.turnoBox}>
+          <div style={styles.catLabel}>MARGEN ESTIMADO</div>
+          <div style={styles.cuentaLinea}><span>Ventas de productos</span><span>{money(ventaProductos)}</span></div>
+          <div style={styles.cuentaLinea}><span>Costo de producción</span><span>{money(costoTotal)}</span></div>
+          <div style={{ ...styles.cuentaLinea, fontWeight: 700 }}>
+            <span>Margen</span>
+            <span>{money(ventaProductos - costoTotal)} ({ventaProductos > 0 ? Math.round(((ventaProductos - costoTotal) / ventaProductos) * 100) : 0}%)</span>
+          </div>
+        </div>
+      )}
+
+      {dataGrafica.length > 0 ? (
+        <div style={{ width: "100%", height: 200, marginTop: 14 }}>
+          <div style={styles.catLabel}>{rango === 1 ? "VENTAS POR HORA" : "VENTAS POR DÍA"}</div>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={dataGrafica}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#D9CCEE" />
+              <XAxis dataKey="k" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={48} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+              <Tooltip formatter={(v) => money(v)} />
+              <Bar dataKey="ventas" fill="#4A2C8F" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div style={styles.cajaEmptyText}>No hay ventas en este período.</div>
+      )}
+
+      {top.length > 0 && (
+        <>
+          <div style={{ ...styles.catLabel, marginTop: 40 }}>MÁS VENDIDOS</div>
+          {top.map(([name, p]) => (
+            <div key={name} style={styles.cuentaLinea}><span>{p.qty}× {name}</span><span>{money(p.subtotal)}</span></div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Fuentes y estilos ---------------- */
+
+const fontImports = `
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+* { box-sizing: border-box; }
+body { margin: 0; background: #F3EEFB; }
+button { font-family: inherit; }
+.solo-imprimir { display: none; }
+@media print {
+  .no-imprimir { display: none !important; }
+  .solo-imprimir { display: block !important; }
+  body { background: #fff; }
+}
+`;
+
+const C = { bg: "#F3EEFB", ink: "#1B1033", line: "#D9CCEE", mute: "#8B80A3", accent: "#4A2C8F", card: "#FFFFFF", soft: "#E6DDF5", dark: "#1B1033" };
+const btnBase = { border: "none", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
+const inputBase = { width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 14, fontFamily: "inherit", background: "#fff", color: C.ink };
+const smallBtn = { ...btnBase, padding: "6px 10px", fontSize: 12, fontWeight: 600 };
+const eyebrow = { fontSize: 11, letterSpacing: 1.2, color: C.mute, fontWeight: 700 };
+
+const styles = {
+  app: { fontFamily: "'DM Sans', system-ui, sans-serif", background: C.bg, color: C.ink, minHeight: "100vh", display: "flex", flexDirection: "column" },
+  loadingScreen: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg },
+  loadingStamp: { fontFamily: "'DM Sans', sans-serif", fontWeight: 700, letterSpacing: 2, color: C.accent },
+  errorGuardadoBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBE2DC", color: "#8A3A2B", padding: "8px 14px", fontSize: 13 },
+  errorGuardadoCerrar: { ...btnBase, background: "transparent", color: "#8A3A2B", padding: 4 },
+  avisoListoBanner: { display: "flex", alignItems: "center", gap: 8, background: "#2F6690", color: "#fff", padding: "10px 14px", fontSize: 14, fontWeight: 600 },
+  avisoNotifBtn: { ...btnBase, width: "100%", background: "#FBEFD9", color: "#8A611A", padding: "8px 14px", fontSize: 13, borderRadius: 0 },
+
+  topBar: { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "10px 14px", background: C.card, borderBottom: `1px solid ${C.line}` },
+  brand: { display: "flex", alignItems: "center", gap: 6, marginRight: "auto" },
+  brandMark: { color: C.accent },
+  brandText: { fontWeight: 700, letterSpacing: 1.5, fontSize: 14 },
+  syncDot: { width: 8, height: 8, borderRadius: 4, display: "inline-block" },
+  meseroChip: { ...smallBtn, background: C.soft, color: C.ink },
+  roleSwitch: { display: "flex", gap: 4, width: "100%" },
+  roleBtn: { ...btnBase, flex: 1, padding: "8px 6px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+  roleBtnActive: { background: C.accent, color: "#F3EEFB" },
+  roleBtnActiveDark: { background: C.dark, color: "#F3EEFB" },
+
+  screen: { flex: 1, display: "flex", flexDirection: "column", background: C.bg, minHeight: 0 },
+  screenDark: { flex: 1, display: "flex", flexDirection: "column", background: C.dark, color: "#F3EEFB", transition: "background .3s" },
+  screenFlash: { background: "#3A2468" },
+  menuScroll: { flex: 1, overflowY: "auto", padding: "12px 16px 24px" },
+
+  loginWrap: { padding: 20, display: "flex", flexDirection: "column", gap: 10, maxWidth: 420, margin: "0 auto", width: "100%" },
+  pageEyebrow: eyebrow,
+  pageTitle: { fontSize: 24, fontWeight: 700 },
+  cajaEmptyText: { fontSize: 13, color: C.mute, lineHeight: 1.5, padding: "6px 0" },
+  loginList: { display: "flex", flexDirection: "column", gap: 8 },
+  loginBtn: { ...btnBase, justifyContent: "flex-start", padding: "12px 14px", background: C.card, border: `1px solid ${C.line}`, fontSize: 15, fontWeight: 600, color: C.ink },
+  rolBadge: { marginLeft: "auto", fontSize: 11, color: C.mute, fontWeight: 600 },
+  pinError: { color: "#C1442D", fontSize: 13, padding: "4px 0" },
+  editInput: inputBase,
+  addItemBtn: { ...btnBase, background: C.accent, color: "#F3EEFB", padding: "11px 14px", fontSize: 14, fontWeight: 600 },
+  inlineAddLink: { ...btnBase, background: "transparent", color: C.accent, fontSize: 13, textDecoration: "underline", padding: 6 },
+  inlineLink: { ...btnBase, background: "transparent", color: C.accent, fontSize: 12, textDecoration: "underline" },
+  backBtn: { ...btnBase, background: "transparent", color: C.accent, fontSize: 14, fontWeight: 600, padding: 6 },
+
+  subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: C.card, borderBottom: `1px solid ${C.line}` },
+  mesaTitleWrap: { display: "flex", flexDirection: "column", alignItems: "center" },
+  mesaEyebrow: eyebrow,
+  mesaTitle: { fontSize: 18, fontWeight: 700 },
+  cuentaOpenSub: { fontSize: 11, color: C.mute },
+  mesaActionBtn: { ...btnBase, width: 34, height: 34, background: C.soft, color: C.ink },
+  mesaActionPanel: { padding: 12, background: C.card, borderBottom: `1px solid ${C.line}`, display: "flex", flexDirection: "column", gap: 8 },
+  modoChoiceBtn: { ...btnBase, justifyContent: "flex-start", padding: "11px 14px", background: C.card, border: `1px solid ${C.line}`, color: C.ink, fontSize: 14, fontWeight: 600, width: "100%" },
+  closeConfirmText: { fontSize: 13, color: "#4A3F66", lineHeight: 1.5 },
+  mesaPickerRow: { display: "flex", flexWrap: "wrap", gap: 6 },
+  mesaPickerBtn: { ...smallBtn, background: C.soft, color: C.ink },
+  cancelEditBtn: { ...btnBase, padding: "10px 14px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+
+  ticketStripCol: { padding: "8px 14px", display: "flex", flexDirection: "column", gap: 6, background: C.card, borderBottom: `1px solid ${C.line}` },
+  miniTicketRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
+  miniTicket: { display: "flex", alignItems: "center", gap: 6, fontSize: 12 },
+  stateDot: { width: 8, height: 8, borderRadius: 4, display: "inline-block" },
+  miniTicketTime: { color: C.mute, marginLeft: 4 },
+  editedTag: { background: "#FBEFD9", color: "#8A611A", fontSize: 10, padding: "1px 6px", borderRadius: 6, marginLeft: 4 },
+  miniTicketActions: { display: "flex", alignItems: "center", gap: 6 },
+  confirmText: { fontSize: 12, color: "#C1442D" },
+  confirmYes: { ...smallBtn, background: "#C1442D", color: "#fff" },
+  confirmNo: { ...smallBtn, background: C.soft, color: C.ink },
+  iconBtn: { ...btnBase, width: 28, height: 28, background: C.soft, color: C.ink },
+  marcarServidoBtn: { ...smallBtn, background: "#5B7553", color: "#fff" },
+  miniTicketTotal: { fontSize: 12, color: "#4A3F66", paddingTop: 4 },
+  editingBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBEFD9", color: "#8A611A", padding: "8px 14px", fontSize: 13 },
+  sentBanner: { display: "flex", alignItems: "center", gap: 8, background: "#E4EEE1", color: "#3F5A38", padding: "8px 14px", fontSize: 13 },
+  repeatBtn: { ...btnBase, margin: "8px 14px 0", padding: "8px 12px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+
+  catPillsWrap: { padding: "10px 14px 4px", display: "flex", flexDirection: "column", gap: 8 },
+  searchInput: inputBase,
+  catPills: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 },
+  catPill: { ...btnBase, padding: "6px 12px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" },
+  catPillActive: { background: C.accent, color: "#F3EEFB" },
+  catPillBadge: { background: "#C1442D", color: "#fff", borderRadius: 8, fontSize: 10, padding: "1px 6px" },
+  menuRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 0", borderBottom: `1px solid ${C.line}` },
+  menuItemName: { fontSize: 14, fontWeight: 600 },
+  agotadoTag: { background: "#8B80A3", color: "#fff", fontSize: 10, padding: "1px 6px", borderRadius: 6, marginLeft: 6 },
+  menuItemCat: { fontSize: 11, color: C.mute },
+  menuItemPrice: { fontSize: 13, color: "#4A3F66" },
+  itemNoteInput: { ...inputBase, padding: "6px 8px", fontSize: 12, marginTop: 4 },
+  itemNoteBtn: { ...btnBase, background: "transparent", color: C.accent, fontSize: 11, padding: "4px 0", justifyContent: "flex-start" },
+  stepper: { display: "flex", alignItems: "center", gap: 8 },
+  stepBtn: { ...btnBase, width: 32, height: 32, background: C.soft, color: C.ink },
+  stepBtnPlus: { background: C.accent, color: "#F3EEFB" },
+  stepVal: { minWidth: 20, textAlign: "center", fontWeight: 700 },
+  noResults: { textAlign: "center", color: C.mute, padding: 20, fontSize: 13 },
+  orderBar: { padding: 12, background: C.card, borderTop: `1px solid ${C.line}`, display: "flex", flexDirection: "column", gap: 8 },
+  noteInput: inputBase,
+  sendBtn: { ...btnBase, padding: "12px 14px", background: C.accent, color: "#F3EEFB", fontSize: 15, fontWeight: 700 },
+
+  mesaGridHeader: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "14px 16px 6px", gap: 8 },
+  editMenuBtn: { ...smallBtn, background: C.soft, color: C.ink },
+  lockedNote: { display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mute },
+  vistaMesasSwitch: { display: "flex", gap: 6, padding: "6px 16px 10px" },
+  vistaMesasBtn: { ...btnBase, flex: 1, padding: "8px 10px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+  vistaMesasBtnActive: { background: C.accent, color: "#F3EEFB" },
+  mesaGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, padding: "0 16px 16px" },
+  mesaCard: { ...btnBase, flexDirection: "column", alignItems: "flex-start", padding: 14, background: C.card, border: `1px solid ${C.line}`, color: C.ink, gap: 6, minHeight: 90 },
+  mesaCardNum: { fontSize: 17, fontWeight: 700 },
+  mesaCardTag: { fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 8, display: "inline-block" },
+  mesaCardSince: { fontSize: 11, color: C.mute },
+
+  addItemCard: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 },
+  catLabel: { ...eyebrow, margin: "12px 0 6px" },
+  menuEditItemBlock: { borderBottom: `1px solid ${C.line}`, padding: "4px 0" },
+  editRow: { display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: `1px solid ${C.line}` },
+  agotadoToggle: { ...btnBase, width: 28, height: 28, background: C.soft, color: C.mute },
+  agotadoToggleActive: { background: "#8B80A3", color: "#fff" },
+  precioEditableBtn: { ...btnBase, marginLeft: "auto", background: "transparent", color: C.ink, fontSize: 13, fontWeight: 600, gap: 4 },
+  deleteBtn: { ...btnBase, width: 28, height: 28, background: "transparent", color: "#C1442D" },
+  costoEditRow: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", paddingBottom: 6 },
+  costoPillBtn: { ...btnBase, background: "transparent", color: C.mute, fontSize: 11, padding: "2px 0", justifyContent: "flex-start" },
+  enCursoTag: { background: "#FBEFD9", color: "#8A611A", fontSize: 10, padding: "2px 6px", borderRadius: 6 },
+  mesaReorderBtn: { ...btnBase, width: 22, height: 16, fontSize: 9, background: C.soft, color: C.ink, padding: 0 },
+
+  planoContainer: { position: "relative", width: "100%", height: 320, background: C.card, border: `1px dashed ${C.line}`, borderRadius: 12, overflow: "hidden", marginBottom: 12 },
+  planoVacio: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: C.mute, fontSize: 13 },
+  planoMesaTile: { position: "absolute", transform: "translate(-50%, -50%)", padding: "10px 12px", borderRadius: 10, border: "2px solid", fontSize: 12, fontWeight: 700, userSelect: "none", fontFamily: "inherit" },
+
+  kdsHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px" },
+  kdsEyebrow: { ...eyebrow, color: "#A598C8" },
+  kdsTitle: { fontSize: 22, fontWeight: 700 },
+  kdsCount: { fontSize: 32, fontWeight: 700, color: "#F3EEFB" },
+  recienListosRow: { display: "flex", gap: 6, flexWrap: "wrap", padding: "0 16px 8px" },
+  recienListoChip: { ...smallBtn, background: "#3A2468", color: "#E6DDF5" },
+  emptyKitchen: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: 40 },
+  emptyKitchenText: { color: "#A598C8", fontSize: 14 },
+  rail: { display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 20px" },
+  ticket: { background: "#2A1B4D", borderLeft: "6px solid", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 6 },
+  ticketHead: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  ticketMesa: { fontSize: 18, fontWeight: 700 },
+  editedBadge: { background: "#B98A2E", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 6, marginLeft: 8 },
+  ticketTime: { fontSize: 14 },
+  ticketExactTime: { fontSize: 11, color: "#A598C8" },
+  ticketDivider: { height: 1, background: "#4A3F66", margin: "4px 0" },
+  ticketLine: { display: "flex", gap: 8, fontSize: 16 },
+  ticketQty: { fontWeight: 700, color: "#E6B35A" },
+  ticketItemName: { fontWeight: 600 },
+  ticketItemNote: { fontSize: 13, color: "#E6B35A", marginLeft: 28 },
+  ticketNote: { fontSize: 13, fontStyle: "italic", color: "#E6DDF5" },
+  ticketBackBtn: { ...btnBase, padding: "0 14px", background: "#4A3F66", color: "#fff" },
+  ticketBtn: { ...btnBase, padding: "12px 14px", color: "#fff", fontSize: 14, fontWeight: 700 },
+
+  cajaTabSwitch: { display: "flex", gap: 4, padding: "6px 16px 10px", overflowX: "auto" },
+  cajaTabBtn: { ...btnBase, flex: 1, padding: "8px 10px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+  cajaTabBtnActive: { background: C.accent, color: "#F3EEFB" },
+  cajaTotalCard: { background: C.dark, color: "#F3EEFB", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 },
+  cajaTotalLabel: { fontSize: 12, color: "#A598C8" },
+  cajaTotalValue: { fontSize: 30, fontWeight: 700 },
+  cajaTotalValue2: { fontSize: 28, fontWeight: 700, display: "flex", flexDirection: "column", margin: "6px 0" },
+  turnoEsperadoLabel: { fontSize: 12, fontWeight: 400, color: C.mute },
+  metodoBreakdownRow: { display: "flex", flexDirection: "column", gap: 4, marginTop: 6 },
+  metodoBreakdownItem: { display: "flex", alignItems: "center", gap: 6, fontSize: 13 },
+  metodoBreakdownLabel: { color: "#A598C8", flex: 1 },
+  metodoBreakdownValue: { fontWeight: 600 },
+  warnBanner: { display: "flex", alignItems: "center", gap: 8, background: "#FBEFD9", color: "#8A611A", padding: "10px 12px", borderRadius: 10, fontSize: 13, margin: "8px 0" },
+  goHistLink: { color: C.accent, fontSize: 13, textDecoration: "underline", cursor: "pointer", padding: "12px 0", textAlign: "center" },
+
+  turnoBox: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 },
+  metodoResumenRow: { display: "flex", gap: 8 },
+  metodoResumenItem: { flex: 1, display: "flex", flexDirection: "column", gap: 2, background: C.bg, borderRadius: 10, padding: 10 },
+  metodoResumenLabel: { fontSize: 11, color: C.mute },
+  metodoResumenValue: { fontSize: 15, fontWeight: 700 },
+  closeCajaBtn: { ...btnBase, padding: "11px 14px", background: C.dark, color: "#F3EEFB", fontSize: 14, fontWeight: 600 },
+  closeConfirmBox: { display: "flex", flexDirection: "column", gap: 8 },
+  diferenciaBox: { padding: "10px 12px", borderRadius: 10, fontWeight: 700, fontSize: 14 },
+  turnoRowCol: { padding: "10px 0", borderBottom: `1px solid ${C.line}` },
+  turnoRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: `1px solid ${C.line}` },
+  cierreDate: { fontSize: 12, color: "#4A3F66" },
+  turnoDiff: { fontSize: 13, fontWeight: 700 },
+  turnoSubRow: { fontSize: 12, color: C.mute, marginTop: 2 },
+  turnoObsRow: { fontSize: 12, fontStyle: "italic", color: "#4A3F66", marginTop: 2 },
+  canceladasToggle: { ...btnBase, width: "100%", justifyContent: "space-between", padding: "10px 12px", background: C.soft, color: C.ink, fontSize: 13, fontWeight: 600 },
+  pagoRowEtiqueta: { fontSize: 13, fontWeight: 600 },
+
+  cuentaCard: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, marginBottom: 10, overflow: "hidden" },
+  cuentaHead: { ...btnBase, width: "100%", justifyContent: "space-between", padding: 14, background: "transparent", color: C.ink, borderRadius: 0 },
+  cuentaMesa: { fontSize: 17, fontWeight: 700 },
+  cuentaSub: { fontSize: 12, color: C.mute },
+  cuentaTotal: { fontSize: 18, fontWeight: 700, marginBottom: 4 },
+  cuentaBody: { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 6 },
+  cuentaLinea: { display: "flex", justifyContent: "space-between", gap: 8, fontSize: 14, padding: "3px 0" },
+
+  histHead: { ...btnBase, width: "100%", justifyContent: "space-between", padding: "10px 12px", background: C.card, border: `1px solid ${C.line}`, color: C.ink, fontSize: 14, marginTop: 6 },
+  histDetalle: { padding: "6px 10px 10px", background: C.card, borderRadius: 8, marginTop: 4 },
+};
