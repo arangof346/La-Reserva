@@ -1,13 +1,13 @@
 {
-  "name": "Comandas",
-  "short_name": "Comandas",
+  "name": "La Reserva Gastro Bar",
+  "short_name": "La Reserva",
   "description": "Mesero, Cocina y Caja",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#16131D",
-  "theme_color": "#0F0C15",
+  "background_color": "#000000",
+  "theme_color": "#0E0D0B",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
